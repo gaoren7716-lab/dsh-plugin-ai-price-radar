@@ -55,8 +55,9 @@ dsh plugin --profile <你的profile名> add ./dsh-plugin-ai-price-radar
 |---|---|---|
 | [BiWu.Ai](https://biwu.ai) | 官方只读快照 feed `/price-radar/latest.json` → 不可变快照，约 5 分钟一版 | 无需鉴权；官方 [API 文档](https://biwu.ai/price-radar-api.md) 明确供 agent / 脚本读取，支持 ETag |
 | [AI价网](http://aiprice.club) | 解析公开类目报价表 | 数据遵循 [CC BY 4.0](http://aiprice.club)，署名「AI价网 (http://aiprice.club)」 |
-| 链动小铺（wzyp.cn） | 经上述聚合源覆盖 | 不直接抓取 |
-| 云猫寄售（catfk.com） | 暂未直连（无公开只读接口） | 其报价经上两源聚合覆盖 |
+| 链动小铺（wzyp.cn） | 经上述聚合源覆盖 | 不直接抓取（直抓被其 ESA 人机验证拦截） |
+| 水獭（shuifa.xyz） | 未并入 | 2026-11-13 起实测域名不可达；恢复后可按同架构接入 |
+| 云猫寄售（catfk.com） | 公开店铺接口直连（POST /shopApi/Shop/goodsList，逐店实时抓取） | 店铺清单发现自 AI价网公开店铺目录；接口无需鉴权 |
 
 ## 隐私与边界
 
