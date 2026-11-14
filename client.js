@@ -93,6 +93,10 @@ window.__ModuleLoader__.load({
       { id: 'biwu', label: 'BiWu.Ai（http://BiWu.Ai）' },
       { id: 'aiprice', label: 'AI价网（http://aiprice.club）' },
       { id: 'catfk', label: '云猫寄售（catfk.com）' },
+      { id: 'openprice', label: 'OpenPrice（openprice.cc）' },
+      { id: 'zhitu', label: '知途·拾价（price.yufu.pub）' },
+      { id: 'priceai', label: 'PriceAI（priceai.cc）' },
+      { id: 'aifeeradar', label: 'AIFeeRadar（aifeeradar.com）' },
     ]
     const PLATFORMS = ['全部平台', '链动小铺', '自建站', '云猫寄售', '16688', '独角数卡', '未知']
     const TYPES = ['全部类型', '成品号', '代充', '卡密', '车位', '质保', '未知']
@@ -239,7 +243,10 @@ window.__ModuleLoader__.load({
             h('li', null, 'BiWu.Ai（http://BiWu.Ai） ——主源。官方只读快照 feed（/price-radar/latest.json → 不可变快照），无需鉴权，按其公开 API 约定带缓存拉取，约 5 分钟一版；本页报价大多覆盖链动小铺（wzyp.cn）发布的实时数据。'),
             h('li', null, 'AI价网（http://aiprice.club） ——补漏源。解析其公开类目报价表；数据遵循 CC BY 4.0，署名「AI价网 (http://aiprice.club)」。'),
             h('li', null, '云猫寄售（catfk.com） ——直连源。经其公开店铺接口（/shopApi/Shop/goodsList，逐店实时抓取）；店铺清单发现自 AI价网的公开店铺目录。'),
-            h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu 与 AI价网 两路覆盖，实时性以聚合源为准。'),
+            h('li', null, 'OpenPrice（https://www.openprice.cc） ——量最大源（1.8 万+ 条）。读取其全量商品页内嵌的公开数据（initialItems），含 344 家店铺、18 个类目；站点 robots 全站开放。'),
+            h('li', null, '知途·拾价（https://price.yufu.pub） ——公开 catalog API（robots.txt 明确白名单 /api/catalog），1100+ 商品 3700+ 报价，含店铺评分与验价状态。'),
+            h('li', null, 'PriceAI（https://priceai.cc） 与 AIFeeRadar（https://aifeeradar.com） ——与 BiWu.Ai 同一 price-radar.v1 官方快照 feed 家族（各自 /.well-known/price-radar.json 发现，按其 API 约定带缓存拉取）。'),
+            h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
             h('li', null, '库存口径：数字 = 库存件数；未知 = 来源未公开库存。同一商品以「平台 + 店铺标识 + 商品标识」为键去重；同一商品同时有直抓与聚合报价时保留直抓行。报价行不重复计数。'),
             h('li', null, '本页只做信息聚合与导航，不参与任何交易；付款前请以商家页面为准。CardNav、PriceAI 依其数据许可仅用于发现店铺与交叉核对，未批量并入。'),

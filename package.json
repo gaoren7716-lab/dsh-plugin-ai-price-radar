@@ -1,6 +1,6 @@
 {
-  "name": "dsh-plugin-ai-price-radar",
-  "version": "1.1.0",
+  "name": "@local/ai-price-radar",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "description": "AI 比价雷达：多源采集的卡网 AI 商品报价面板（本地运行 / 只读采集）",
@@ -32,10 +32,5 @@
         "@deepseek-ai/dsh-client-ui-sidebar"
       ]
     }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/gaoren7716-lab/dsh-plugin-ai-price-radar.git"
-  },
-  "license": "MIT"
+  }
 }
