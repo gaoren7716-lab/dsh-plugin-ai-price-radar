@@ -1,0 +1,8 @@
+{
+  "meta": {
+    "title": "AI price radar",
+    "description": "Read-only card-shop price comparison panel for AI subscriptions: aggregates public offer feeds (BiWu.Ai snapshot feed, aiprice.club category tables), with search, platform/source/payment-type filters, and original offer links. Collects locally, no trading.",
+    "detail": "docs/DETAIL.md"
+  },
+  "panel": "AI price radar"
+}

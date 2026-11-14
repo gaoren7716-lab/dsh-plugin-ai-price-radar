@@ -1,0 +1,41 @@
+{
+  "name": "dsh-plugin-ai-price-radar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 比价雷达：多源采集的卡网 AI 商品报价面板（本地运行 / 只读采集）",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/collectors.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gaoren7716-lab/dsh-plugin-ai-price-radar.git"
+  },
+  "license": "MIT"
+}
