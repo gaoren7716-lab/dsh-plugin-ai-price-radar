@@ -6,6 +6,10 @@
 
 ![icon](icon.svg)
 
+## 预览
+
+![AI 比价雷达面板](docs/preview.png)
+
 ## 功能
 
 - **全网报价搜索**：按关键词（如 `gpt`、`claude 质保`）过滤聚合报价。
