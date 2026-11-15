@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Client half of the AI price radar: registers one global main panel (the
  * comparison page) plus its sidebar entry, mirroring how the shipped Plugins
  * page mounts into the root `main` keyed slot.
@@ -249,7 +249,7 @@ window.__ModuleLoader__.load({
             h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
             h('li', null, '库存口径：数字 = 库存件数；未知 = 来源未公开库存。同一商品以「平台 + 店铺标识 + 商品标识」为键去重；同一商品同时有直抓与聚合报价时保留直抓行。报价行不重复计数。'),
-            h('li', null, '本页只做信息聚合与导航，不参与任何交易；付款前请以商家页面为准。CardNav、PriceAI 依其数据许可仅用于发现店铺与交叉核对，未批量并入。'),
+            h('li', null, '本页只做信息聚合与导航，不参与任何交易；付款前请以商家页面为准。'),
           ),
         ),
       )
@@ -273,6 +273,8 @@ window.__ModuleLoader__.load({
       return `${Math.round(hr / 24)} 天前`
     }
 
+    const SOURCE_NAMES = Object.fromEntries(SOURCES.map(s => [s.id, s.label.replace(/（.*$/, '').trim()]))
+
     function OfferCard({ offer }) {
       const stockChip = offer.stock === 'in'
         ? h('span', { className: 'radar-chip ok' }, offer.stockCount ? `标记有货 · 库存 ${offer.stockCount}` : '标记有货')
@@ -282,7 +284,7 @@ window.__ModuleLoader__.load({
       return h('div', { className: 'radar-card' },
         h('div', { className: 'radar-chips' },
           h('span', { className: 'radar-chip' }, offer.platform),
-          h('span', { className: 'radar-chip' }, `来源：${offer.source === 'biwu' ? 'BiWu.Ai' : 'AI价网'}`),
+          h('span', { className: 'radar-chip src' }, `来源：${SOURCE_NAMES[offer.source] || offer.source}`),
           h('span', { className: 'radar-chip' }, offer.productType),
           stockChip,
         ),
