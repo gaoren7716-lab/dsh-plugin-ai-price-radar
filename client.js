@@ -191,6 +191,7 @@ window.__ModuleLoader__.load({
       const markedCount = filtered.filter(r => r.stock === 'in').length
       const okSources = snapshot ? snapshot.sources.filter(s => !s.failed).length : 0
       const totalSources = snapshot ? snapshot.sources.length : 0
+      const sourceFailures = snapshot ? snapshot.sources.flatMap(s => (s.failures || []).map(f => `${s.label || s.source}：${f}`)) : []
 
       const onSubmit = (e) => {
         e.preventDefault()
@@ -264,11 +265,14 @@ window.__ModuleLoader__.load({
             snapshot ? `查询于 ${new Date(snapshot.fetchedAt || snapshot.cachedAt || Date.now()).toLocaleTimeString()} · 当前页面展示 ${pageRows.length} / ${filtered.length} 条${snapshot.cached ? `（缓存于 ${new Date(snapshot.cachedAt).toLocaleTimeString()}）` : '（来源实时聚合）'}` : '正在加载…',
           ),
         ),
-        (snapshot && snapshot.errors && snapshot.errors.length > 0) && h('div', { className: 'radar-warn' },
-          '部分来源受限：' + snapshot.errors.map(e => e.source + ' ' + e.message).join('；'),
+        ((snapshot && snapshot.errors && snapshot.errors.length > 0) || sourceFailures.length > 0) && h('div', { className: 'radar-warn' },
+          '部分来源受限：' + [
+            ...(snapshot ? snapshot.errors.map(e => e.source + ' ' + e.message) : []),
+            ...sourceFailures,
+          ].join('；'),
         ),
         h('div', { className: 'radar-tabs' },
-          [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜']].map(([id, label]) =>
+          [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜'], ['same', '同款比价']].map(([id, label]) =>
             h('button', {
               key: id, type: 'button',
               className: `radar-tab${state.tab === id ? ' active' : ''}`,
@@ -282,6 +286,7 @@ window.__ModuleLoader__.load({
         }),
         state.tab === 'categories' && h(CategoryBoard, { rows, onPick: pickCategory }),
         state.tab === 'hot' && h(HotBoard, { rows, shopSales: snapshot ? (snapshot.shopSales || []) : [] }),
+        state.tab === 'same' && h(SameItemBoard, { groups: snapshot ? (snapshot.groups || []) : [] }),
         h('div', { className: 'radar-doc' },
           h('h4', null, '数据来源与口径'),
           h('ul', null,
@@ -293,12 +298,48 @@ window.__ModuleLoader__.load({
             h('li', null, 'PriceAI（https://priceai.cc） 与 AIFeeRadar（https://aifeeradar.com） ——与 BiWu.Ai 同一 price-radar.v1 官方快照 feed 家族（各自 /.well-known/price-radar.json 发现，按其 API 约定带缓存拉取）。'),
             h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
+            h('li', null, '同款比价：按商家原始购买链接归并，同一链接被多个来源收录时每个来源只取最低价（避免同店不同规格误判），展示真实跨源价差与可省金额；疑似引流价（¥1 以下对 ¥20 以上）单独排除。'),
             h('li', null, '分类榜单：把七源的细分类目统一归入 12 个 AI 货架（ChatGPT / Claude / Gemini / Grok / 邮箱账号 / 接码验证 / API 中转 等）；报价数=供给规模，最低/中位价=当前结果价格带，店铺数=活跃店铺。'),
             h('li', null, '销售热榜：店铺累计销量取自 AI价网公开「店铺销量」标签与云猫寄售 Shop/info 的 sell_count（已按店铺去重、冲突取较大值）；商品「已售」取自标题标注；供给热度按店铺收录报价数排序，明确非销量。均为商家公开的历史累计口径，非本插件成交数据。'),
             h('li', null, '库存口径：数字 = 库存件数；未知 = 来源未公开库存。同一商品以「平台 + 店铺标识 + 商品标识」为键去重；同一商品同时有直抓与聚合报价时保留直抓行。报价行不重复计数。'),
             h('li', null, '本页只做信息聚合与导航，不参与任何交易；付款前请以商家页面为准。'),
           ),
         ),
+      )
+    }
+
+    /** Tab 4: same-item cross-source comparison — the real "比价" view. */
+    function SameItemBoard({ groups }) {
+      const withSpread = groups.filter(g => g.spread > 0 && !g.suspicious)
+      const suspiciousCount = groups.filter(g => g.spread > 0 && g.suspicious).length
+      const maxSpread = withSpread.reduce((m, g) => Math.max(m, g.spread), 1)
+      const totalSave = withSpread.reduce((n, g) => n + g.spread, 0)
+      return h('div', null,
+        h('div', { className: 'radar-board' },
+          h('h4', { className: 'radar-board-title' }, '同款比价 · 同一商品在不同来源的价差'),
+          h('p', { className: 'radar-board-note' },
+            `按商家原始购买链接归并：${groups.length} 款商品被 2 个以上来源收录，其中 ${withSpread.length} 款存在真实价差，合计可省 ¥${formatPrice(totalSave)}。每个来源只取该链接的最低价（避免同店不同规格误判）；另排除 ${suspiciousCount} 款疑似引流价（¥1 以下对 ¥20 以上）。价格为各来源采集时的公开报价，付款前请回原站核对。`),
+        ),
+        withSpread.length === 0 && h('div', { className: 'radar-empty' }, '本轮没有发现跨来源有价差的同款商品。'),
+        withSpread.slice(0, 60).map((g, i) => h('div', { className: 'radar-rank', key: g.url + i },
+          h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
+          h('div', { className: 'radar-rank-main' },
+            h('span', { className: 'radar-rank-name', title: g.title }, g.title),
+            h('span', { className: 'radar-rank-sub' },
+              h('span', null, `${g.sources.length} 个来源`),
+              h('span', null, `最低 ${SOURCE_NAMES[g.bestSource] || g.bestSource} · ${g.bestStore}`),
+              h('span', null, `¥${formatPrice(g.min)} → ¥${formatPrice(g.max)}`),
+            ),
+            h('div', { className: 'radar-bar' }, h('i', { style: { width: `${Math.max(2, (g.spread / maxSpread) * 100)}%` } })),
+          ),
+          h('div', { className: 'radar-rank-num' },
+            h('b', null, `¥${formatPrice(g.spread)}`),
+            h('span', null, `可省 ${g.savePct}%`),
+          ),
+          h('div', { className: 'radar-rank-actions' },
+            g.url && h('a', { className: 'radar-link', href: g.url, target: '_blank', rel: 'noopener noreferrer nofollow' }, '去原站'),
+          ),
+        )),
       )
     }
 
@@ -525,6 +566,7 @@ window.__ModuleLoader__.load({
           h('span', { className: 'radar-chip src' }, `来源：${SOURCE_NAMES[offer.source] || offer.source}`),
           h('span', { className: 'radar-chip' }, offer.productType),
           stockChip,
+          offer.groupCount > 1 && h('span', { className: 'radar-chip src' }, `${offer.groupCount} 源同款`),
         ),
         h('div', { className: 'radar-card-title', title: offer.title }, offer.title),
         h('div', { className: 'radar-price' }, h('small', null, offer.currency), formatPrice(offer.price)),
