@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Client half of the AI price radar: registers one global main panel (the
  * comparison page) plus its sidebar entry, mirroring how the shipped Plugins
  * page mounts into the root `main` keyed slot.
  */
 window.__ModuleLoader__.load({
-  id: '@local/ai-price-radar',
+  id: 'dsh-plugin-ai-price-radar',
   factory(require) {
     const React = require('react')
     const h = React.createElement

@@ -1,5 +1,5 @@
 {
-  "name": "@local/ai-price-radar",
+  "name": "dsh-plugin-ai-price-radar",
   "version": "1.2.0",
   "private": true,
   "type": "module",
