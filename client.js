@@ -136,6 +136,45 @@ window.__ModuleLoader__.load({
 .radar-rel button{background:var(--dsw-alias-interactive-bg-hover,#1f2630);border:1px solid var(--dsw-alias-border-l3,#2d3b45);
   color:var(--dsw-alias-label-secondary,#8b98a5);border-radius:999px;padding:5px 12px;font-size:11px;cursor:pointer;}
 .radar-rel button:hover{color:var(--dsw-alias-state-business-primary,#4d6bfe);border-color:var(--dsw-alias-state-business-primary,#4d6bfe);}
+.radar-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;}
+.radar-tool-btn{background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l3,#2d3b45);
+  color:var(--dsw-alias-label-secondary,#8b98a5);border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;white-space:nowrap;}
+.radar-tool-btn:hover{color:var(--dsw-alias-state-business-primary,#4d6bfe);border-color:var(--dsw-alias-state-business-primary,#4d6bfe);}
+.radar-tool-btn.on{color:#22c55e;border-color:#22c55e;}
+.radar-tool-sep{flex:1;}
+.radar-detail-filter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+.radar-detail-filter input{background:var(--dsw-alias-field-bg,#0d1117);border:1px solid var(--dsw-alias-border-l3,#2d3b45);
+  border-radius:8px;padding:7px 10px;color:inherit;font-size:12px;outline:none;min-width:180px;}
+.radar-detail-filter select{background:var(--dsw-alias-field-bg,#0d1117);border:1px solid var(--dsw-alias-border-l3,#2d3b45);
+  border-radius:8px;padding:7px 10px;color:inherit;font-size:12px;cursor:pointer;}
+.radar-trend-wrap{margin-top:12px;background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l2,#212933);
+  border-radius:12px;padding:16px;}
+.radar-trend-svg{width:100%;height:220px;display:block;}
+.radar-trend-legend{display:flex;gap:16px;font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);margin-top:8px;flex-wrap:wrap;}
+.radar-trend-legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle;}
+.radar-compare-scroll{overflow-x:auto;margin-top:12px;}
+.radar-compare-table{border-collapse:collapse;width:100%;font-size:12px;min-width:700px;}
+.radar-compare-table th,.radar-compare-table td{border:1px solid var(--dsw-alias-border-l2,#212933);padding:8px 10px;text-align:left;vertical-align:top;}
+.radar-compare-table th{background:var(--dsw-alias-interactive-bg-hover,#1f2630);color:var(--dsw-alias-label-secondary,#8b98a5);font-weight:600;white-space:nowrap;}
+.radar-compare-table td.best{color:#22c55e;font-weight:700;}
+.radar-compare-table a{color:var(--dsw-alias-state-business-primary,#4d6bfe);text-decoration:none;}
+.radar-chip-btn{background:rgba(77,107,254,.12);color:var(--dsw-alias-state-business-primary,#4d6bfe);border:none;border-radius:6px;
+  padding:3px 8px;font-size:11px;cursor:pointer;}
+.radar-chip-btn.on{background:rgba(34,197,94,.15);color:#22c55e;}
+@media (max-width:760px){
+  .radar-page{padding:16px 12px 28px;}
+  .radar-stats{gap:14px;}
+  .radar-stat b{font-size:17px;}
+  .radar-meta{margin-left:0;text-align:left;width:100%;}
+  .radar-filters{grid-template-columns:repeat(auto-fit,minmax(130px,1fr));}
+  .radar-tabs{overflow-x:auto;}
+  .radar-tab{padding:8px 10px;font-size:12px;}
+  .radar-rank{gap:8px;padding:10px;}
+  .radar-rank-num{min-width:70px;}
+  .radar-detail-row{flex-wrap:wrap;}
+  .radar-crumb span.cur{max-width:180px;}
+  .radar-tool-btn{font-size:11px;padding:6px 9px;}
+}
 `
     // Inject one stylesheet; removed with the plugin.
     let styleEl = null
@@ -168,13 +207,105 @@ window.__ModuleLoader__.load({
       { id: 'price-desc', label: '价格从高到低' },
       { id: 'time-desc', label: '观察时间从新到旧' },
     ]
+    const FRESHNESS = [
+      { id: 'all', label: '全部时间' },
+      { id: '24h', label: '24 小时内' },
+      { id: '7d', label: '7 天内' },
+      { id: '30d', label: '30 天内' },
+    ]
+    /** Search aliases: an OR group per token, AND between tokens. */
+    const ALIASES = {
+      gpt: ['gpt', 'chatgpt', 'codex', 'openai', 'sora', 'plus', 'pro'],
+      chatgpt: ['chatgpt', 'gpt', 'codex', 'openai'],
+      codex: ['codex', 'gpt', 'chatgpt'],
+      claude: ['claude', 'anthropic', '克劳德'],
+      gemini: ['gemini', 'google', 'veo', '谷歌'],
+      grok: ['grok', 'xai'],
+      cursor: ['cursor', 'windsurf', 'kiro'],
+      deepseek: ['deepseek', '深度求索'],
+      邮箱: ['邮箱', 'gmail', 'outlook', 'hotmail', 'icloud', 'mail'],
+      接码: ['接码', '验证码', 'sms', 'kyc'],
+      中转: ['中转', 'api', 'token', 'gateway'],
+      成品号: ['成品号', '账号', '普号', '白号'],
+      代充: ['代充', '充值', '直充'],
+      卡密: ['卡密', 'cdk', '兑换码'],
+    }
+    const SUGGESTIONS = ['gpt', 'chatgpt plus', 'claude pro', 'gemini', 'grok', 'cursor', 'deepseek', '邮箱', '接码', '中转 API', '成品号', '代充', '卡密', '车位']
+
+    function expandQuery(q) {
+      const tokens = String(q || '').trim().toLowerCase().split(/\s+/).filter(Boolean)
+      return tokens.map(t => {
+        const direct = ALIASES[t]
+        if (direct) return direct
+        for (const [key, vals] of Object.entries(ALIASES)) if (t.includes(key) || key.includes(t)) return vals
+        return [t]
+      })
+    }
+    function matchesQuery(row, groups) {
+      if (groups.length === 0) return true
+      const hay = `${row.title} ${row.store} ${row.category || ''} ${row.subCategory || ''} ${row.productType || ''}`.toLowerCase()
+      return groups.every(g => g.some(term => hay.includes(term)))
+    }
+    function withinFreshness(row, freshness) {
+      if (freshness === 'all') return true
+      const t = Date.parse(row.observedAt)
+      if (!isFinite(t)) return false
+      const days = freshness === '24h' ? 1 : freshness === '7d' ? 7 : 30
+      return Date.now() - t <= days * 86400000
+    }
+    function readUrlState() {
+      try {
+        const p = new URLSearchParams(String(location.hash || '').replace(/^#/, ''))
+        const d = p.get('detail')
+        return {
+          tab: p.get('tab') || 'offers',
+          category: p.get('cat') || '全部类目',
+          source: p.get('src') || 'all',
+          stock: p.get('stock') || 'all',
+          platform: p.get('pf') || '全部平台',
+          type: p.get('type') || '全部类型',
+          freshness: p.get('fresh') || 'all',
+          sort: p.get('sort') || 'price-asc',
+          query: p.get('q') || '',
+          detail: d ? { type: d.split(':')[0], key: d.slice(d.indexOf(':') + 1), label: p.get('label') || '', fromTab: p.get('tab') || 'offers' } : null,
+        }
+      } catch { return null }
+    }
+    function writeUrlState(s) {
+      try {
+        const p = new URLSearchParams()
+        if (s.tab !== 'offers') p.set('tab', s.tab)
+        if (s.category !== '全部类目') p.set('cat', s.category)
+        if (s.source !== 'all') p.set('src', s.source)
+        if (s.stock !== 'all') p.set('stock', s.stock)
+        if (s.platform !== '全部平台') p.set('pf', s.platform)
+        if (s.type !== '全部类型') p.set('type', s.type)
+        if (s.freshness !== 'all') p.set('fresh', s.freshness)
+        if (s.sort !== 'price-asc') p.set('sort', s.sort)
+        if (s.query) p.set('q', s.query)
+        if (s.detail) { p.set('detail', `${s.detail.type}:${s.detail.key}`); p.set('label', s.detail.label) }
+        const hash = p.toString()
+        const next = hash ? '#' + hash : location.pathname + location.search
+        history.replaceState(null, '', next)
+      } catch { /* host may own location; state still works in memory */ }
+    }
+    function loadFavorites() {
+      try { const v = JSON.parse(localStorage.getItem('ai-price-radar:favorites') || '[]'); return Array.isArray(v) ? v : [] }
+      catch { return [] }
+    }
 
     function Panel() {
+      const initial = React.useMemo(() => readUrlState() || {}, [])
       const [state, setState] = React.useState({
-        loading: true, error: null, snapshot: null, query: '',
-        source: 'all', stock: 'all', platform: '全部平台', type: '全部类型',
-        category: '全部类目', tab: 'offers', sort: 'price-asc', page: 1,
-        detail: null,
+        loading: true, error: null, snapshot: null,
+        query: initial.query || '',
+        source: initial.source || 'all', stock: initial.stock || 'all',
+        platform: initial.platform || '全部平台', type: initial.type || '全部类型',
+        category: initial.category || '全部类目', freshness: initial.freshness || 'all',
+        tab: initial.tab || 'offers', sort: initial.sort || 'price-asc', page: 1,
+        detail: initial.detail || null,
+        autoRefresh: false,
+        favorites: typeof localStorage !== 'undefined' ? loadFavorites() : [],
       })
       const inputRef = React.useRef(null)
       const PAGE_SIZE = 100
@@ -187,6 +318,19 @@ window.__ModuleLoader__.load({
           .catch(error => setState(s => ({ ...s, loading: false, error: String(error.message || error) })))
       }, [])
       React.useEffect(() => { load(false) }, [load])
+      // URL state: shareable + refresh-safe; popstate restores browser Back.
+      React.useEffect(() => { writeUrlState(state) }, [state.tab, state.category, state.source, state.stock, state.platform, state.type, state.freshness, state.sort, state.query, state.detail])
+      React.useEffect(() => {
+        const onPop = () => { const u = readUrlState(); if (u) setState(s => ({ ...s, ...u, page: 1, detail: u.detail || null })) }
+        window.addEventListener('popstate', onPop)
+        return () => window.removeEventListener('popstate', onPop)
+      }, [])
+      // Silent auto-refresh every 5 minutes, opt-in.
+      React.useEffect(() => {
+        if (!state.autoRefresh) return undefined
+        const id = setInterval(() => load(false), 5 * 60 * 1000)
+        return () => clearInterval(id)
+      }, [state.autoRefresh, load])
 
       const snapshot = state.snapshot
       const rows = snapshot ? snapshot.rows : []
@@ -195,7 +339,7 @@ window.__ModuleLoader__.load({
         return ['全部类目', ...names]
       }, [rows])
       const filtered = React.useMemo(() => {
-        const q = state.query.trim().toLowerCase()
+        const groups = expandQuery(state.query)
         const out = rows.filter(r => {
           if (state.source !== 'all' && r.source !== state.source) return false
           if (state.stock === 'in' && r.stock !== 'in') return false
@@ -203,7 +347,8 @@ window.__ModuleLoader__.load({
           if (state.platform !== '全部平台' && r.platform !== state.platform) return false
           if (state.type !== '全部类型' && r.productType !== state.type) return false
           if (state.category !== '全部类目' && r.category !== state.category) return false
-          if (q && !(r.title.toLowerCase().includes(q) || r.store.toLowerCase().includes(q))) return false
+          if (!withinFreshness(r, state.freshness)) return false
+          if (!matchesQuery(r, groups)) return false
           return true
         })
         out.sort((a, b) => {
@@ -212,7 +357,7 @@ window.__ModuleLoader__.load({
           return String(b.observedAt).localeCompare(String(a.observedAt))
         })
         return out
-      }, [rows, state.query, state.source, state.stock, state.platform, state.type, state.category, state.sort])
+      }, [rows, state.query, state.source, state.stock, state.platform, state.type, state.category, state.freshness, state.sort])
 
       const pageRows = filtered.slice(0, state.page * PAGE_SIZE)
       const lowest = filtered.length ? Math.min(...filtered.map(r => r.price)) : null
@@ -230,6 +375,28 @@ window.__ModuleLoader__.load({
       const pickCategory = (name) => setState(s => ({ ...s, category: name, tab: 'offers', page: 1, query: '', detail: null }))
       const openDetail = (type, key, label, fromTab) => setState(s => ({ ...s, detail: { type, key, label, fromTab: fromTab || s.tab } }))
       const closeDetail = () => setState(s => ({ ...s, detail: null }))
+      const toggleFavorite = (key) => setState(s => {
+        const has = s.favorites.includes(key)
+        const favorites = has ? s.favorites.filter(k => k !== key) : [...s.favorites, key]
+        try { localStorage.setItem('ai-price-radar:favorites', JSON.stringify(favorites)) } catch { /* storage optional */ }
+        return { ...s, favorites }
+      })
+      const clearFavorites = () => setState(s => {
+        try { localStorage.setItem('ai-price-radar:favorites', '[]') } catch { /* storage optional */ }
+        return { ...s, favorites: [], detail: null }
+      })
+      const exportCsv = () => {
+        const cols = ['title', 'price', 'currency', 'store', 'platform', 'source', 'category', 'productType', 'stock', 'observedAt', 'url']
+        const head = ['商品', '价格', '币种', '店铺', '平台', '来源', '类目', '交付类型', '库存', '观察时间', '原始链接']
+        const esc = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`
+        const lines = [head.map(esc).join(','), ...filtered.map(r => cols.map(c => esc(r[c])).join(','))]
+        const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(blob)
+        a.download = `ai-price-radar-${new Date().toISOString().slice(0, 10)}.csv`
+        document.body.appendChild(a); a.click(); document.body.removeChild(a)
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+      }
 
       return h('div', { className: 'radar-page' },
         h('style', null, cssText),
@@ -247,9 +414,10 @@ window.__ModuleLoader__.load({
         h('form', { className: 'radar-search', onSubmit },
           h('div', { className: 'radar-search-row' },
             h('input', {
-              ref: inputRef, className: 'radar-input', placeholder: '搜索商品关键词，如 gpt、claude 质保…',
-              defaultValue: state.query,
+              ref: inputRef, className: 'radar-input', placeholder: '搜索商品关键词，如 gpt、claude 质保…（空格分隔多条件，支持同义词）',
+              defaultValue: state.query, list: 'radar-suggestions',
             }),
+            h('datalist', { id: 'radar-suggestions' }, SUGGESTIONS.map(s => h('option', { key: s, value: s }))),
             h('button', { className: 'radar-btn', type: 'submit' }, '搜索全网报价'),
           ),
           h('div', { className: 'radar-filters' },
@@ -274,6 +442,11 @@ window.__ModuleLoader__.load({
             h('label', { className: 'radar-field' }, '商品/交付类型',
               h('select', { className: 'radar-select', value: state.type, onChange: setField('type') },
                 TYPES.map(t => h('option', { key: t, value: t }, t)),
+              ),
+            ),
+            h('label', { className: 'radar-field' }, '观察时间',
+              h('select', { className: 'radar-select', value: state.freshness, onChange: setField('freshness') },
+                FRESHNESS.map(f => h('option', { key: f.id, value: f.id }, f.label)),
               ),
             ),
             h('label', { className: 'radar-field' }, '商品类目',
@@ -301,15 +474,32 @@ window.__ModuleLoader__.load({
             ...sourceFailures,
           ].join('；'),
         ),
-        state.detail && h(DetailView, {
-          detail: state.detail, rows, groups: snapshot ? (snapshot.groups || []) : [],
-          shopSales: snapshot ? (snapshot.shopSales || []) : [],
-          onBack: closeDetail, openDetail, pickCategory, onTab: setTab,
-        }),
+        h('div', { className: 'radar-toolbar' },
+          h('button', { className: 'radar-tool-btn', type: 'button', onClick: exportCsv }, `导出当前结果 CSV（${filtered.length} 条）`),
+          h('button', { className: `radar-tool-btn${state.autoRefresh ? ' on' : ''}`, type: 'button',
+            onClick: () => setState(s => ({ ...s, autoRefresh: !s.autoRefresh })) }, state.autoRefresh ? '自动刷新：开（5 分钟）' : '自动刷新：关'),
+          h('button', { className: 'radar-tool-btn', type: 'button', onClick: () => load(true) }, '立即刷新数据'),
+          h('span', { className: 'radar-tool-sep' }),
+          h('button', { className: `radar-tool-btn${state.favorites.length ? ' on' : ''}`, type: 'button',
+            onClick: () => openDetail('compare', 'favorites', `对比清单 · ${state.favorites.length} 款`, state.tab) },
+            `对比清单（${state.favorites.length}）`),
+          state.favorites.length > 0 && h('button', { className: 'radar-tool-btn', type: 'button', onClick: clearFavorites }, '清空'),
+        ),
+        state.detail && (state.detail.type === 'compare'
+          ? h(CompareView, {
+            favorites: state.favorites, rows, onBack: closeDetail,
+            toggleFavorite, clearFavorites, openDetail,
+          })
+          : h(DetailView, {
+            detail: state.detail, rows, groups: snapshot ? (snapshot.groups || []) : [],
+            shopSales: snapshot ? (snapshot.shopSales || []) : [],
+            favorites: state.favorites, toggleFavorite,
+            onBack: closeDetail, openDetail, pickCategory, onTab: setTab,
+          })),
         // TOP sites keep global navigation visible on detail pages: the tab bar
         // stays mounted, and picking any tab closes the current detail view.
         h('div', { className: 'radar-tabs' },
-          [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜'], ['same', '同款比价']].map(([id, label]) =>
+          [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜'], ['same', '同款比价'], ['trend', '价格走势']].map(([id, label]) =>
             h('button', {
               key: id, type: 'button',
               className: `radar-tab${!state.detail && state.tab === id ? ' active' : ''}${state.detail && state.detail.fromTab === id ? ' active' : ''}`,
@@ -319,11 +509,13 @@ window.__ModuleLoader__.load({
         ),
         !state.detail && state.tab === 'offers' && h(OffersView, {
           state, filtered, pageRows, setField, openDetail,
+          favorites: state.favorites, toggleFavorite,
           onLoadMore: () => setState(s => ({ ...s, page: s.page + 1 })),
         }),
         !state.detail && state.tab === 'categories' && h(CategoryBoard, { rows, onPick: pickCategory, openDetail }),
         !state.detail && state.tab === 'hot' && h(HotBoard, { rows, shopSales: snapshot ? (snapshot.shopSales || []) : [], openDetail }),
         !state.detail && state.tab === 'same' && h(SameItemBoard, { groups: snapshot ? (snapshot.groups || []) : [], openDetail }),
+        !state.detail && state.tab === 'trend' && h(PriceTrendBoard, { history: snapshot ? (snapshot.history || []) : [] }),
         h('div', { className: 'radar-doc' },
           h('h4', null, '数据来源与口径'),
           h('ul', null,
@@ -335,7 +527,9 @@ window.__ModuleLoader__.load({
             h('li', null, 'PriceAI（https://priceai.cc） 与 AIFeeRadar（https://aifeeradar.com） ——与 BiWu.Ai 同一 price-radar.v1 官方快照 feed 家族（各自 /.well-known/price-radar.json 发现，按其 API 约定带缓存拉取）。'),
             h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
-            h('li', null, '榜单下钻：分类卡片、店铺销量行、商品已售行、同款比价行、报价卡片均可点击进去查看详情（面包屑 + 返回 + 各来源报价表 + 去原站直链 + 类目/店铺交叉导航），交互参照 BiWu、AI价网、知途的详情页习惯。'),
+            h('li', null, '榜单下钻：分类卡片、店铺销量行、商品已售行、同款比价行、报价卡片均可点击进去查看详情（面包屑 + 返回 + 各来源报价表 + 去原站直链 + 类目/店铺交叉导航），交互参照 BiWu、AI价网、知途的详情页习惯。详情页内可再搜索、排序、按库存筛选。'),
+            h('li', null, '价格走势：宿主每天记录一次全站与各品类的最低价/中位价/报价数快照（本机持久化、最多 90 天），从第 2 天起可看折线；数据自本功能上线后开始积累。'),
+            h('li', null, '效率工具：搜索支持同义词（gpt↔ChatGPT/Codex/OpenAI 等）与多关键词 AND、输入联想；观察时间可筛 24h/7天/30天；结果可导出 CSV；可开 5 分钟自动刷新；点「+ 对比」把商品加入本机清单横向比较。筛选/排序/详情状态写入 URL hash，可分享、刷新可恢复。'),
             h('li', null, '同款比价：按商家原始购买链接归并，同一链接被多个来源收录时每个来源只取最低价（避免同店不同规格误判），展示真实跨源价差与可省金额；疑似引流价（¥1 以下对 ¥20 以上）单独排除。'),
             h('li', null, '分类榜单：把七源的细分类目统一归入 12 个 AI 货架（ChatGPT / Claude / Gemini / Grok / 邮箱账号 / 接码验证 / API 中转 等）；报价数=供给规模，最低/中位价=当前结果价格带，店铺数=活跃店铺。'),
             h('li', null, '销售热榜：店铺累计销量取自 AI价网公开「店铺销量」标签与云猫寄售 Shop/info 的 sell_count（已按店铺去重、冲突取较大值）；商品「已售」取自标题标注；供给热度按店铺收录报价数排序，明确非销量。均为商家公开的历史累计口径，非本插件成交数据。'),
@@ -402,8 +596,12 @@ window.__ModuleLoader__.load({
      * categories/shops. Rendered in-page (not a modal) so the host theme,
      * scrolling and focus behaviour stay intact.
      */
-    function DetailView({ detail, rows, groups, shopSales, onBack, openDetail, pickCategory, onTab }) {
+    function DetailView({ detail, rows, groups, shopSales, favorites, toggleFavorite, onBack, openDetail, pickCategory, onTab }) {
       const { type, key, label } = detail
+      const [filterQuery, setFilterQuery] = React.useState('')
+      const [filterSort, setFilterSort] = React.useState('price-asc')
+      const [filterStock, setFilterStock] = React.useState('all')
+      React.useEffect(() => { setFilterQuery(''); setFilterSort('price-asc'); setFilterStock('all') }, [type, key])
       const content = React.useMemo(() => {
         if (type === 'shop') {
           const shopRows = rows.filter(r => (r.store || '').trim().toLowerCase() === key.trim().toLowerCase()
@@ -435,14 +633,23 @@ window.__ModuleLoader__.load({
           ? '同一商品在各来源的公开报价对比'
           : '该品类的价格带、活跃店铺与最低价商品'
 
-      const listRows = [...allRows].sort((a, b) => a.price - b.price).slice(0, 40)
-      const bestPrice = min
+      const filteredRows = React.useMemo(() => {
+        const gs = expandQuery(filterQuery)
+        const out = allRows.filter(r => matchesQuery(r, gs) && (filterStock === 'all' || (filterStock === 'in' ? r.stock === 'in' : r.stock === 'out')))
+        out.sort((a, b) => filterSort === 'price-desc' ? b.price - a.price
+          : filterSort === 'time-desc' ? String(b.observedAt).localeCompare(String(a.observedAt))
+            : a.price - b.price)
+        return out
+      }, [allRows, filterQuery, filterSort, filterStock])
+      const listRows = filteredRows.slice(0, 40)
+      const bestPrice = allRows.length ? allRows.reduce((m, r) => Math.min(m, r.price), Infinity) : null
 
       return h('div', null,
         h('div', { className: 'radar-crumb' },
           h('button', { type: 'button', onClick: onBack }, '← 返回榜单'),
           h('span', { className: 'sep' }, '/'),
-          h('button', { type: 'button', onClick: () => onTab(detail.fromTab || 'hot') }, detail.fromTab === 'categories' ? '分类榜单' : detail.fromTab === 'same' ? '同款比价' : detail.fromTab === 'offers' ? '报价卡片' : '销售热榜'),
+          h('button', { type: 'button', onClick: () => onTab(detail.fromTab || 'hot') },
+            ({ offers: '报价卡片', categories: '分类榜单', hot: '销售热榜', same: '同款比价', trend: '价格走势' })[detail.fromTab] || '销售热榜'),
           h('span', { className: 'sep' }, '/'),
           h('span', { className: 'cur', title: label }, label),
         ),
@@ -471,8 +678,19 @@ window.__ModuleLoader__.load({
             )),
           ),
         ),
-        h('h4', { className: 'radar-subhead' }, content.kind === 'shop' ? '该店报价（按价格升序）' : content.kind === 'item' ? '该商品在全部来源的报价明细' : '该类目最低价商品'),
-        listRows.length < allRows.length && h('p', { className: 'radar-board-note' }, `共 ${allRows.length} 条，下列展示价格最低的 ${listRows.length} 条；其余可用「查看该类报价」在报价卡片里继续筛选。`),
+        h('h4', { className: 'radar-subhead' }, content.kind === 'shop' ? '该店报价' : content.kind === 'item' ? '该商品在全部来源的报价明细' : '该类目商品'),
+        h('div', { className: 'radar-detail-filter' },
+          h('input', { placeholder: '在此结果内搜索（支持同义词）', value: filterQuery, list: 'radar-suggestions',
+            onChange: (e) => setFilterQuery(e.target.value) }),
+          h('select', { value: filterSort, onChange: (e) => setFilterSort(e.target.value) },
+            SORTS.map(s => h('option', { key: s.id, value: s.id }, s.label)),
+          ),
+          h('select', { value: filterStock, onChange: (e) => setFilterStock(e.target.value) },
+            h('option', { value: 'all' }, '全部库存'), h('option', { value: 'in' }, '仅看有货'), h('option', { value: 'out' }, '仅看缺货'),
+          ),
+          h('span', { style: { fontSize: '11px', color: 'var(--dsw-alias-label-tertiary,#6e7b87)' } }, `筛出 ${filteredRows.length} 条`),
+        ),
+        listRows.length < filteredRows.length && h('p', { className: 'radar-board-note' }, `共 ${filteredRows.length} 条，下列展示前 ${listRows.length} 条；可用上方排序/筛选继续缩小。`),
         h('div', { className: 'radar-detail-list' },
           listRows.map((r, i) => h('div', { className: 'radar-detail-row radar-clickable', key: r.dedupeKey + i,
             onClick: () => openDetail('item', r.url || r.dedupeKey, r.title, 'offers') },
@@ -487,6 +705,9 @@ window.__ModuleLoader__.load({
               ),
             ),
             h('span', { className: `rd-price${r.price === bestPrice ? ' best' : ''}` }, `¥${formatPrice(r.price)}`),
+            h('button', { className: `radar-chip-btn${favorites.includes(r.dedupeKey) ? ' on' : ''}`, type: 'button',
+              onClick: (e) => { e.stopPropagation(); toggleFavorite(r.dedupeKey) } },
+              favorites.includes(r.dedupeKey) ? '✓ 已对比' : '+ 对比'),
             r.url && h('a', { className: 'radar-link', href: r.url, target: '_blank', rel: 'noopener noreferrer nofollow',
               onClick: (e) => e.stopPropagation() }, '去原站'),
           )),
@@ -503,12 +724,112 @@ window.__ModuleLoader__.load({
       )
     }
 
+    /** Tab 5: price history. One snapshot per UTC day, pure SVG (no deps). */
+    function PriceTrendBoard({ history }) {
+      const [metric, setMetric] = React.useState('lowest')
+      const [cat, setCat] = React.useState('全站')
+      const cats = React.useMemo(() => {
+        const set = new Set()
+        for (const h of history) for (const k of Object.keys(h.byCategory || {})) set.add(k)
+        return ['全站', ...[...set].sort()]
+      }, [history])
+      const series = React.useMemo(() => history.map(h => {
+        if (cat === '全站') return { day: h.day, value: metric === 'total' ? h.total : metric === 'median' ? h.median : h.lowest }
+        return { day: h.day, value: h.byCategory?.[cat] }
+      }).filter(p => typeof p.value === 'number' && isFinite(p.value)), [history, metric, cat])
+      const W = 900, H = 220, P = 34
+      const values = series.map(p => p.value)
+      const min = values.length ? Math.min(...values) : 0
+      const max = values.length ? Math.max(...values) : 1
+      const span = max - min || 1
+      const x = (i) => P + (series.length <= 1 ? (W - 2 * P) / 2 : i * (W - 2 * P) / (series.length - 1))
+      const y = (v) => H - P - (v - min) / span * (H - 2 * P)
+      const path = series.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(' ')
+      const area = series.length > 1 ? `${path} L${x(series.length - 1).toFixed(1)},${H - P} L${x(0).toFixed(1)},${H - P} Z` : ''
+      const label = metric === 'total' ? '收录报价数' : metric === 'median' ? '中位价' : '最低价'
+      return h('div', null,
+        h('div', { className: 'radar-board' },
+          h('h4', { className: 'radar-board-title' }, '价格走势 · 每日快照'),
+          h('p', { className: 'radar-board-note' },
+            `宿主每天记录一次聚合快照（全站与各类目最低价、中位价、报价数），保存在本机，重启不丢，最多保留 90 天。当前已积累 ${history.length} 天。数据从本功能上线后开始积累，天数不足 2 天时画不出折线属正常。`),
+          h('div', { className: 'radar-detail-filter' },
+            h('select', { value: metric, onChange: (e) => setMetric(e.target.value) },
+              h('option', { value: 'lowest' }, '最低价'),
+              h('option', { value: 'median' }, '中位价'),
+              h('option', { value: 'total' }, '收录报价数'),
+            ),
+            h('select', { value: cat, onChange: (e) => setCat(e.target.value) },
+              cats.map(c => h('option', { key: c, value: c }, c)),
+            ),
+          ),
+        ),
+        history.length < 2
+          ? h('div', { className: 'radar-empty' }, '历史快照不足 2 天，明天再来看趋势。当前：' + (history[0] ? `${history[0].day} · 最低 ¥${formatPrice(history[0].lowest)} · ${history[0].total} 条` : '暂无'))
+          : h('div', { className: 'radar-trend-wrap' },
+            h('svg', { className: 'radar-trend-svg', viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: 'none' },
+              h('line', { x1: P, y1: H - P, x2: W - P, y2: H - P, stroke: 'var(--dsw-alias-border-l3,#2d3b45)', 'stroke-width': 1 }),
+              h('line', { x1: P, y1: P, x2: P, y2: H - P, stroke: 'var(--dsw-alias-border-l3,#2d3b45)', 'stroke-width': 1 }),
+              area && h('path', { d: area, fill: 'rgba(77,107,254,.12)' }),
+              h('path', { d: path, fill: 'none', stroke: '#4d6bfe', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }),
+              series.map((p, i) => h('circle', { key: p.day, cx: x(i), cy: y(p.value), r: 3.5, fill: '#22c55e' })),
+              h('text', { x: P, y: 16, fill: 'var(--dsw-alias-label-tertiary,#6e7b87)', 'font-size': 11 }, `${label}：${formatPrice(max)}`),
+              h('text', { x: P, y: H - 8, fill: 'var(--dsw-alias-label-tertiary,#6e7b87)', 'font-size': 11 }, series[0].day + ' → ' + series[series.length - 1].day + `（最低 ${formatPrice(min)}）`),
+            ),
+            h('div', { className: 'radar-trend-legend' },
+              h('span', null, h('i', { style: { background: '#4d6bfe' } }), `${label}（${cat}）`),
+              h('span', null, `共 ${series.length} 个数据点`),
+              h('span', null, `区间 ¥${formatPrice(min)} ~ ¥${formatPrice(max)}`),
+            ),
+          ),
+      )
+    }
+
+    /** Comparison list: localStorage-backed favorites shown as a side-by-side table. */
+    function CompareView({ favorites, rows, onBack, toggleFavorite, clearFavorites, openDetail }) {
+      const picked = React.useMemo(() => rows.filter(r => favorites.includes(r.dedupeKey)), [rows, favorites])
+      const best = picked.length ? Math.min(...picked.map(r => r.price)) : null
+      return h('div', null,
+        h('div', { className: 'radar-crumb' },
+          h('button', { type: 'button', onClick: onBack }, '← 返回榜单'),
+          h('span', { className: 'sep' }, '/'),
+          h('span', { className: 'cur' }, `对比清单 · ${picked.length} 款`),
+        ),
+        h('div', { className: 'radar-board' },
+          h('h4', { className: 'radar-board-title' }, '收藏 / 对比清单'),
+          h('p', { className: 'radar-board-note' }, '在报价卡片点「+ 对比」把商品加入这里，跨商品横向比价格、库存、质保与来源。清单保存在本机浏览器，刷新不丢。'),
+          picked.length > 0 && h('button', { className: 'radar-tool-btn', type: 'button', onClick: clearFavorites }, '清空清单'),
+        ),
+        picked.length === 0
+          ? h('div', { className: 'radar-empty' }, '清单还是空的。去「报价卡片」点几款商品的「+ 对比」吧。')
+          : h('div', { className: 'radar-compare-scroll' },
+            h('table', { className: 'radar-compare-table' },
+              h('thead', null, h('tr', null,
+                ['商品', '价格', '店铺', '来源', '平台', '类目', '交付类型', '库存', '观察', '原始链接', ''].map(t => h('th', { key: t }, t)),
+              )),
+              h('tbody', null, picked.map(r => h('tr', { key: r.dedupeKey },
+                h('td', null, h('a', { href: '#', onClick: (e) => { e.preventDefault(); openDetail('item', r.url || r.dedupeKey, r.title, 'offers') } }, r.title.slice(0, 40))),
+                h('td', { className: r.price === best ? 'best' : '' }, `¥${formatPrice(r.price)}`),
+                h('td', null, r.store),
+                h('td', null, SOURCE_NAMES[r.source] || r.source),
+                h('td', null, r.platform),
+                h('td', null, r.category || ''),
+                h('td', null, r.productType || ''),
+                h('td', null, r.stock === 'in' ? '有货' : r.stock === 'out' ? '缺货' : '未知'),
+                h('td', null, relTime(r.observedAt)),
+                h('td', null, r.url && h('a', { href: r.url, target: '_blank', rel: 'noopener noreferrer nofollow' }, '去原站')),
+                h('td', null, h('button', { className: 'radar-chip-btn', type: 'button', onClick: () => toggleFavorite(r.dedupeKey) }, '移除')),
+              ))),
+            ),
+          ),
+      )
+    }
+
     function groupKeyOf(url) {
       return String(url || '').replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase()
     }
 
     /** Tab 1: the original offer grid. */
-    function OffersView({ state, filtered, pageRows, setField, onLoadMore, openDetail }) {
+    function OffersView({ state, filtered, pageRows, setField, onLoadMore, openDetail, favorites, toggleFavorite }) {
       return h('div', null,
         h('div', { className: 'radar-section' },
           h('h3', null, `商品报价 · ${filtered.length} 条（按不同交付类型核对后再比价）`),
@@ -522,7 +843,10 @@ window.__ModuleLoader__.load({
         state.error && h('div', { className: 'radar-empty' }, `采集失败：${state.error}（稍后刷新重试）`),
         !state.loading && !state.error && pageRows.length === 0 && h('div', { className: 'radar-empty' }, '没有符合筛选条件的报价；放宽筛选或换个关键词试试。'),
         h('div', { className: 'radar-grid' },
-          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r, onOpen: () => openDetail('item', r.url || r.dedupeKey, r.title, 'offers') })),
+          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r,
+            onOpen: () => openDetail('item', r.url || r.dedupeKey, r.title, 'offers'),
+            favorite: favorites.includes(r.dedupeKey),
+            onFavorite: () => toggleFavorite(r.dedupeKey) })),
         ),
         pageRows.length < filtered.length && h('div', { style: { marginTop: '16px', textAlign: 'center' } },
           h('button', { className: 'radar-btn', onClick: onLoadMore },
@@ -711,7 +1035,7 @@ window.__ModuleLoader__.load({
       return `${Math.round(hr / 24)} 天前`
     }
 
-    function OfferCard({ offer, onOpen }) {
+    function OfferCard({ offer, onOpen, favorite, onFavorite }) {
       const stockChip = offer.stock === 'in'
         ? h('span', { className: 'radar-chip ok' }, offer.stockCount ? `标记有货 · 库存 ${offer.stockCount}` : '标记有货')
         : offer.stock === 'out'
@@ -724,6 +1048,8 @@ window.__ModuleLoader__.load({
           h('span', { className: 'radar-chip' }, offer.productType),
           stockChip,
           offer.groupCount > 1 && h('span', { className: 'radar-chip src' }, `${offer.groupCount} 源同款`),
+          h('button', { className: `radar-chip-btn${favorite ? ' on' : ''}`, type: 'button',
+            onClick: (e) => { e.stopPropagation(); onFavorite() } }, favorite ? '✓ 已对比' : '+ 对比'),
         ),
         h('div', { className: 'radar-card-title', title: offer.title }, offer.title),
         h('div', { className: 'radar-price' }, h('small', null, offer.currency), formatPrice(offer.price)),

@@ -5,9 +5,58 @@
  * cached in memory. The Client panel fetches `/leida/api/offers` same-origin.
  */
 import { gzipSync } from 'node:zlib'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { getAggregate } from './lib/collectors.js'
 
 const API_PREFIX = '/leida/api'
+
+/**
+ * Daily price-history snapshot. Written to the DSH home (or OS temp) so it
+ * survives process restarts; one entry per UTC day, kept for 90 days. The
+ * panel uses it for the 价格走势 chart. Failures never break the offers API.
+ */
+const HISTORY_DIR = join(process.env.DSH_HOME || tmpdir(), 'ai-price-radar')
+const HISTORY_FILE = join(HISTORY_DIR, 'history.json')
+
+function readHistory() {
+  try { const v = JSON.parse(readFileSync(HISTORY_FILE, 'utf8')); return Array.isArray(v) ? v : [] }
+  catch { return [] }
+}
+
+function recordHistory(rows) {
+  try {
+    if (!existsSync(HISTORY_DIR)) mkdirSync(HISTORY_DIR, { recursive: true })
+    const day = new Date().toISOString().slice(0, 10)
+    const byCategory = {}
+    let lowest = Infinity
+    let inStock = 0
+    for (const r of rows) {
+      if (r.price < lowest) lowest = r.price
+      if (r.stock === 'in') inStock++
+      const c = r.category || '其它 AI 服务'
+      if (byCategory[c] === undefined || r.price < byCategory[c]) byCategory[c] = r.price
+    }
+    const entry = {
+      day, at: Date.now(), total: rows.length, inStock,
+      lowest: isFinite(lowest) ? lowest : null,
+      median: medianOf(rows.map(r => r.price)),
+      byCategory,
+    }
+    const next = [...readHistory().filter(x => x.day !== day), entry]
+      .sort((a, b) => String(a.day).localeCompare(String(b.day)))
+      .slice(-90)
+    writeFileSync(HISTORY_FILE, JSON.stringify(next))
+    return next
+  } catch { return readHistory() }
+}
+
+function medianOf(values) {
+  if (!values.length) return null
+  const s = [...values].sort((a, b) => a - b)
+  return s[Math.floor(s.length / 2)]
+}
 
 /** Canonical product identity across sources: same merchant URL = same item. */
 function groupKey(url) {
@@ -123,6 +172,7 @@ export function apply(ctx) {
               errors: snapshot.errors,
               shopSales: snapshot.shopSales || [],
               groups,
+              history: recordHistory(rows),
               rows,
             })
             send(res, 200, body, acceptEncoding, req.method)
