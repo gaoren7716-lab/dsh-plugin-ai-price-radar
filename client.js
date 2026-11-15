@@ -109,6 +109,33 @@ window.__ModuleLoader__.load({
 .radar-cat-bar{margin-top:10px;}
 .radar-cat-foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .radar-cat-shop{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.radar-clickable{cursor:pointer;transition:border-color .15s,transform .1s;}
+.radar-clickable:hover{border-color:var(--dsw-alias-state-business-primary,#4d6bfe);transform:translateY(-1px);}
+.radar-crumb{display:flex;align-items:center;gap:8px;margin-top:16px;padding:10px 14px;background:var(--dsw-alias-bg-module-platform,#161b22);
+  border:1px solid var(--dsw-alias-border-l2,#212933);border-radius:10px;font-size:12px;flex-wrap:wrap;}
+.radar-crumb button{background:none;border:none;color:var(--dsw-alias-state-business-primary,#4d6bfe);font-size:12px;cursor:pointer;padding:2px 4px;}
+.radar-crumb button:hover{text-decoration:underline;}
+.radar-crumb span.sep{color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-crumb span.cur{color:var(--dsw-alias-label-primary,#e6edf3);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px;}
+.radar-detail-head{margin-top:14px;background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l2,#212933);border-radius:12px;padding:16px;}
+.radar-detail-head h3{margin:0 0 4px;font-size:18px;font-weight:700;}
+.radar-detail-head p{margin:0;font-size:12px;color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-detail-metrics{display:flex;gap:24px;margin-top:14px;flex-wrap:wrap;}
+.radar-detail-metrics div{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-detail-metrics b{display:block;font-size:20px;font-weight:800;color:var(--dsw-alias-label-primary,#e6edf3);}
+.radar-detail-metrics b.orange{color:#f97316;}
+.radar-detail-list{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+.radar-detail-row{background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l2,#212933);border-radius:10px;
+  padding:11px 13px;display:flex;align-items:center;gap:12px;}
+.radar-detail-row .rd-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
+.radar-detail-row .rd-title{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.radar-detail-row .rd-sub{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);display:flex;gap:10px;flex-wrap:wrap;}
+.radar-detail-row .rd-price{font-size:16px;font-weight:800;color:#f97316;white-space:nowrap;min-width:78px;text-align:right;}
+.radar-detail-row .rd-price.best{color:#22c55e;}
+.radar-rel{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.radar-rel button{background:var(--dsw-alias-interactive-bg-hover,#1f2630);border:1px solid var(--dsw-alias-border-l3,#2d3b45);
+  color:var(--dsw-alias-label-secondary,#8b98a5);border-radius:999px;padding:5px 12px;font-size:11px;cursor:pointer;}
+.radar-rel button:hover{color:var(--dsw-alias-state-business-primary,#4d6bfe);border-color:var(--dsw-alias-state-business-primary,#4d6bfe);}
 `
     // Inject one stylesheet; removed with the plugin.
     let styleEl = null
@@ -147,6 +174,7 @@ window.__ModuleLoader__.load({
         loading: true, error: null, snapshot: null, query: '',
         source: 'all', stock: 'all', platform: '全部平台', type: '全部类型',
         category: '全部类目', tab: 'offers', sort: 'price-asc', page: 1,
+        detail: null,
       })
       const inputRef = React.useRef(null)
       const PAGE_SIZE = 100
@@ -198,8 +226,10 @@ window.__ModuleLoader__.load({
         setState(s => ({ ...s, query: inputRef.current ? inputRef.current.value : '', page: 1 }))
       }
       const setField = (key) => (e) => setState(s => ({ ...s, [key]: e.target.value, page: 1 }))
-      const setTab = (tab) => setState(s => ({ ...s, tab }))
-      const pickCategory = (name) => setState(s => ({ ...s, category: name, tab: 'offers', page: 1, query: '' }))
+      const setTab = (tab) => setState(s => ({ ...s, tab, detail: null }))
+      const pickCategory = (name) => setState(s => ({ ...s, category: name, tab: 'offers', page: 1, query: '', detail: null }))
+      const openDetail = (type, key, label, fromTab) => setState(s => ({ ...s, detail: { type, key, label, fromTab: fromTab || s.tab } }))
+      const closeDetail = () => setState(s => ({ ...s, detail: null }))
 
       return h('div', { className: 'radar-page' },
         h('style', null, cssText),
@@ -271,22 +301,29 @@ window.__ModuleLoader__.load({
             ...sourceFailures,
           ].join('；'),
         ),
+        state.detail && h(DetailView, {
+          detail: state.detail, rows, groups: snapshot ? (snapshot.groups || []) : [],
+          shopSales: snapshot ? (snapshot.shopSales || []) : [],
+          onBack: closeDetail, openDetail, pickCategory, onTab: setTab,
+        }),
+        // TOP sites keep global navigation visible on detail pages: the tab bar
+        // stays mounted, and picking any tab closes the current detail view.
         h('div', { className: 'radar-tabs' },
           [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜'], ['same', '同款比价']].map(([id, label]) =>
             h('button', {
               key: id, type: 'button',
-              className: `radar-tab${state.tab === id ? ' active' : ''}`,
+              className: `radar-tab${!state.detail && state.tab === id ? ' active' : ''}${state.detail && state.detail.fromTab === id ? ' active' : ''}`,
               onClick: () => setTab(id),
             }, label),
           ),
         ),
-        state.tab === 'offers' && h(OffersView, {
-          state, filtered, pageRows, setField,
+        !state.detail && state.tab === 'offers' && h(OffersView, {
+          state, filtered, pageRows, setField, openDetail,
           onLoadMore: () => setState(s => ({ ...s, page: s.page + 1 })),
         }),
-        state.tab === 'categories' && h(CategoryBoard, { rows, onPick: pickCategory }),
-        state.tab === 'hot' && h(HotBoard, { rows, shopSales: snapshot ? (snapshot.shopSales || []) : [] }),
-        state.tab === 'same' && h(SameItemBoard, { groups: snapshot ? (snapshot.groups || []) : [] }),
+        !state.detail && state.tab === 'categories' && h(CategoryBoard, { rows, onPick: pickCategory, openDetail }),
+        !state.detail && state.tab === 'hot' && h(HotBoard, { rows, shopSales: snapshot ? (snapshot.shopSales || []) : [], openDetail }),
+        !state.detail && state.tab === 'same' && h(SameItemBoard, { groups: snapshot ? (snapshot.groups || []) : [], openDetail }),
         h('div', { className: 'radar-doc' },
           h('h4', null, '数据来源与口径'),
           h('ul', null,
@@ -298,6 +335,7 @@ window.__ModuleLoader__.load({
             h('li', null, 'PriceAI（https://priceai.cc） 与 AIFeeRadar（https://aifeeradar.com） ——与 BiWu.Ai 同一 price-radar.v1 官方快照 feed 家族（各自 /.well-known/price-radar.json 发现，按其 API 约定带缓存拉取）。'),
             h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
+            h('li', null, '榜单下钻：分类卡片、店铺销量行、商品已售行、同款比价行、报价卡片均可点击进去查看详情（面包屑 + 返回 + 各来源报价表 + 去原站直链 + 类目/店铺交叉导航），交互参照 BiWu、AI价网、知途的详情页习惯。'),
             h('li', null, '同款比价：按商家原始购买链接归并，同一链接被多个来源收录时每个来源只取最低价（避免同店不同规格误判），展示真实跨源价差与可省金额；疑似引流价（¥1 以下对 ¥20 以上）单独排除。'),
             h('li', null, '分类榜单：把七源的细分类目统一归入 12 个 AI 货架（ChatGPT / Claude / Gemini / Grok / 邮箱账号 / 接码验证 / API 中转 等）；报价数=供给规模，最低/中位价=当前结果价格带，店铺数=活跃店铺。'),
             h('li', null, '销售热榜：店铺累计销量取自 AI价网公开「店铺销量」标签与云猫寄售 Shop/info 的 sell_count（已按店铺去重、冲突取较大值）；商品「已售」取自标题标注；供给热度按店铺收录报价数排序，明确非销量。均为商家公开的历史累计口径，非本插件成交数据。'),
@@ -309,7 +347,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Tab 4: same-item cross-source comparison — the real "比价" view. */
-    function SameItemBoard({ groups }) {
+    function SameItemBoard({ groups, openDetail }) {
       const withSpread = groups.filter(g => g.spread > 0 && !g.suspicious)
       const suspiciousCount = groups.filter(g => g.spread > 0 && g.suspicious).length
       const maxSpread = withSpread.reduce((m, g) => Math.max(m, g.spread), 1)
@@ -321,7 +359,8 @@ window.__ModuleLoader__.load({
             `按商家原始购买链接归并：${groups.length} 款商品被 2 个以上来源收录，其中 ${withSpread.length} 款存在真实价差，合计可省 ¥${formatPrice(totalSave)}。每个来源只取该链接的最低价（避免同店不同规格误判）；另排除 ${suspiciousCount} 款疑似引流价（¥1 以下对 ¥20 以上）。价格为各来源采集时的公开报价，付款前请回原站核对。`),
         ),
         withSpread.length === 0 && h('div', { className: 'radar-empty' }, '本轮没有发现跨来源有价差的同款商品。'),
-        withSpread.slice(0, 60).map((g, i) => h('div', { className: 'radar-rank', key: g.url + i },
+        withSpread.slice(0, 60).map((g, i) => h('div', { className: 'radar-rank radar-clickable', key: g.url + i,
+          onClick: () => openDetail('item', g.url, g.title, 'same') },
           h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
           h('div', { className: 'radar-rank-main' },
             h('span', { className: 'radar-rank-name', title: g.title }, g.title),
@@ -337,7 +376,8 @@ window.__ModuleLoader__.load({
             h('span', null, `可省 ${g.savePct}%`),
           ),
           h('div', { className: 'radar-rank-actions' },
-            g.url && h('a', { className: 'radar-link', href: g.url, target: '_blank', rel: 'noopener noreferrer nofollow' }, '去原站'),
+            g.url && h('a', { className: 'radar-link', href: g.url, target: '_blank', rel: 'noopener noreferrer nofollow',
+              onClick: (e) => e.stopPropagation() }, '去原站'),
           ),
         )),
       )
@@ -355,8 +395,120 @@ window.__ModuleLoader__.load({
       return String(n)
     }
 
+    /**
+     * Drill-down detail view. Borrows the TOP sites' shared pattern:
+     * breadcrumb + back, headline metrics, a price/comparison table with stock
+     * badges and outbound buy links, and cross-navigation to related
+     * categories/shops. Rendered in-page (not a modal) so the host theme,
+     * scrolling and focus behaviour stay intact.
+     */
+    function DetailView({ detail, rows, groups, shopSales, onBack, openDetail, pickCategory, onTab }) {
+      const { type, key, label } = detail
+      const content = React.useMemo(() => {
+        if (type === 'shop') {
+          const shopRows = rows.filter(r => (r.store || '').trim().toLowerCase() === key.trim().toLowerCase()
+            || (r.store || '').toLowerCase().includes(key.toLowerCase()))
+          const sales = shopSales.find(s => (s.shop || '').trim().toLowerCase() === key.trim().toLowerCase())
+          const cats = [...new Set(shopRows.map(r => r.category).filter(Boolean))]
+          return { kind: 'shop', shopRows, sales, cats }
+        }
+        if (type === 'item') {
+          const g = groups.find(x => x.url === key)
+          const itemRows = g ? rows.filter(r => groupKeyOf(r.url) === key) : rows.filter(r => r.dedupeKey === key || r.url === key)
+          return { kind: 'item', group: g, itemRows }
+        }
+        const catRows = rows.filter(r => r.category === key)
+        const byShop = new Map()
+        for (const r of catRows) byShop.set(r.store, (byShop.get(r.store) || 0) + 1)
+        return { kind: 'category', catRows, topShops: [...byShop.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10) }
+      }, [type, key, rows, groups, shopSales])
+
+      const allRows = content.shopRows || content.itemRows || content.catRows || []
+      const prices = allRows.map(r => r.price).sort((a, b) => a - b)
+      const min = prices[0]
+      const median = prices[Math.floor(prices.length / 2)]
+      const inStock = allRows.filter(r => r.stock === 'in').length
+      const title = type === 'category' ? `${key} · 品类详情` : label
+      const subtitle = type === 'shop'
+        ? '该店铺在七源的公开报价、销量与品类分布'
+        : type === 'item'
+          ? '同一商品在各来源的公开报价对比'
+          : '该品类的价格带、活跃店铺与最低价商品'
+
+      const listRows = [...allRows].sort((a, b) => a.price - b.price).slice(0, 40)
+      const bestPrice = min
+
+      return h('div', null,
+        h('div', { className: 'radar-crumb' },
+          h('button', { type: 'button', onClick: onBack }, '← 返回榜单'),
+          h('span', { className: 'sep' }, '/'),
+          h('button', { type: 'button', onClick: () => onTab(detail.fromTab || 'hot') }, detail.fromTab === 'categories' ? '分类榜单' : detail.fromTab === 'same' ? '同款比价' : detail.fromTab === 'offers' ? '报价卡片' : '销售热榜'),
+          h('span', { className: 'sep' }, '/'),
+          h('span', { className: 'cur', title: label }, label),
+        ),
+        h('div', { className: 'radar-detail-head' },
+          h('h3', null, title),
+          h('p', null, subtitle),
+          h('div', { className: 'radar-detail-metrics' },
+            h('div', null, h('b', null, String(allRows.length)), '收录报价'),
+            h('div', null, h('b', null, String(inStock)), '标记有货'),
+            h('div', null, h('b', { className: 'orange' }, min !== undefined ? `¥${formatPrice(min)}` : '—'), '最低价'),
+            h('div', null, h('b', null, median !== undefined ? `¥${formatPrice(median)}` : '—'), '中位价'),
+            content.kind === 'shop' && content.sales && h('div', null, h('b', null, compactNumber(content.sales.sales)), '累计销量(公开)'),
+            content.kind === 'item' && content.group && h('div', null, h('b', { className: 'orange' }, `¥${formatPrice(content.group.spread)}`), '跨源价差'),
+          ),
+        ),
+        content.kind === 'item' && content.group && h('div', { className: 'radar-board', style: { marginTop: '12px' } },
+          h('h4', { className: 'radar-board-title' }, '各来源报价（每源取最低）'),
+          h('div', { className: 'radar-detail-list' },
+            content.group.quotes.map((q, i) => h('div', { className: 'radar-detail-row', key: q.source + i },
+              h('div', { className: 'rd-main' },
+                h('span', { className: 'rd-title' }, SOURCE_NAMES[q.source] || q.source),
+                h('span', { className: 'rd-sub' }, h('span', null, q.store), h('span', null, q.stock === 'in' ? '有货' : q.stock === 'out' ? '缺货' : '库存未知')),
+              ),
+              h('span', { className: `rd-price${q.price === bestPrice ? ' best' : ''}` }, `¥${formatPrice(q.price)}`),
+              q.url && h('a', { className: 'radar-link', href: q.url, target: '_blank', rel: 'noopener noreferrer nofollow' }, '去原站'),
+            )),
+          ),
+        ),
+        h('h4', { className: 'radar-subhead' }, content.kind === 'shop' ? '该店报价（按价格升序）' : content.kind === 'item' ? '该商品在全部来源的报价明细' : '该类目最低价商品'),
+        listRows.length < allRows.length && h('p', { className: 'radar-board-note' }, `共 ${allRows.length} 条，下列展示价格最低的 ${listRows.length} 条；其余可用「查看该类报价」在报价卡片里继续筛选。`),
+        h('div', { className: 'radar-detail-list' },
+          listRows.map((r, i) => h('div', { className: 'radar-detail-row radar-clickable', key: r.dedupeKey + i,
+            onClick: () => openDetail('item', r.url || r.dedupeKey, r.title, 'offers') },
+            h('div', { className: 'rd-main' },
+              h('span', { className: 'rd-title', title: r.title }, r.title),
+              h('span', { className: 'rd-sub' },
+                h('span', null, r.store),
+                h('span', null, SOURCE_NAMES[r.source] || r.source),
+                h('span', null, r.category || ''),
+                h('span', null, r.stock === 'in' ? '有货' : r.stock === 'out' ? '缺货' : '库存未知'),
+                r.observedAt && h('span', null, relTime(r.observedAt)),
+              ),
+            ),
+            h('span', { className: `rd-price${r.price === bestPrice ? ' best' : ''}` }, `¥${formatPrice(r.price)}`),
+            r.url && h('a', { className: 'radar-link', href: r.url, target: '_blank', rel: 'noopener noreferrer nofollow',
+              onClick: (e) => e.stopPropagation() }, '去原站'),
+          )),
+        ),
+        // Cross-navigation: TOP sites always link category <-> shop both ways.
+        h('h4', { className: 'radar-subhead' }, content.kind === 'category' ? '该类目活跃店铺（点击查看店铺详情）' : '相关导航'),
+        h('div', { className: 'radar-rel' },
+          content.kind === 'shop' && (content.cats || []).map(c => h('button', { key: c, type: 'button', onClick: () => pickCategory(c) }, `类目：${c}`)),
+          content.kind === 'shop' && h('button', { type: 'button', onClick: () => openDetail('category', (content.cats || [])[0] || '其它 AI 服务', (content.cats || [])[0] || '其它 AI 服务', 'hot') }, '查看主营类目'),
+          content.kind === 'category' && (content.topShops || []).map(([s, n]) => h('button', { key: s, type: 'button', onClick: () => openDetail('shop', s, s, 'categories') }, `${s} · ${n} 条`)),
+          content.kind === 'item' && h('button', { type: 'button', onClick: () => { const r = (content.itemRows || [])[0]; if (r) openDetail('shop', r.store, r.store, 'offers') } }, '查看该店铺其它商品'),
+          content.kind === 'item' && h('button', { type: 'button', onClick: () => { const r = (content.itemRows || [])[0]; if (r) pickCategory(r.category) } }, '查看同类目全部报价'),
+        ),
+      )
+    }
+
+    function groupKeyOf(url) {
+      return String(url || '').replace(/[?#].*$/, '').replace(/\/$/, '').toLowerCase()
+    }
+
     /** Tab 1: the original offer grid. */
-    function OffersView({ state, filtered, pageRows, setField, onLoadMore }) {
+    function OffersView({ state, filtered, pageRows, setField, onLoadMore, openDetail }) {
       return h('div', null,
         h('div', { className: 'radar-section' },
           h('h3', null, `商品报价 · ${filtered.length} 条（按不同交付类型核对后再比价）`),
@@ -370,7 +522,7 @@ window.__ModuleLoader__.load({
         state.error && h('div', { className: 'radar-empty' }, `采集失败：${state.error}（稍后刷新重试）`),
         !state.loading && !state.error && pageRows.length === 0 && h('div', { className: 'radar-empty' }, '没有符合筛选条件的报价；放宽筛选或换个关键词试试。'),
         h('div', { className: 'radar-grid' },
-          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r })),
+          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r, onOpen: () => openDetail('item', r.url || r.dedupeKey, r.title, 'offers') })),
         ),
         pageRows.length < filtered.length && h('div', { style: { marginTop: '16px', textAlign: 'center' } },
           h('button', { className: 'radar-btn', onClick: onLoadMore },
@@ -380,7 +532,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Tab 2: category board — supply, stock, price band and top shop per shelf. */
-    function CategoryBoard({ rows, onPick }) {
+    function CategoryBoard({ rows, onPick, openDetail }) {
       const groups = React.useMemo(() => {
         const map = new Map()
         for (const r of rows) {
@@ -419,7 +571,8 @@ window.__ModuleLoader__.load({
             '统一把七源的细分类目归入 12 个货架：报价数反映该品类的供给规模，最低/中位价是当前结果的价格带，店铺数为活跃店铺数。点「查看该类报价」切回报价卡片并自动套用类目筛选。'),
         ),
         h('div', { className: 'radar-cat-grid' },
-          groups.map(g => h('div', { className: 'radar-cat', key: g.name },
+          groups.map(g => h('div', { className: 'radar-cat radar-clickable', key: g.name,
+            onClick: () => openDetail('category', g.name, g.name, 'categories') },
             h('h5', null, g.name, h('em', null, `${(g.share * 100).toFixed(1)}% 的报价`)),
             h('div', { className: 'radar-cat-metrics' },
               h('div', null, h('b', null, String(g.count)), '报价数'),
@@ -433,7 +586,8 @@ window.__ModuleLoader__.load({
             ),
             h('div', { className: 'radar-cat-foot' },
               h('span', { className: 'radar-cat-shop', title: g.topShop }, `供给最多：${g.topShop}`),
-              h('button', { className: 'radar-mini', type: 'button', onClick: () => onPick(g.name) }, '查看该类报价'),
+              h('button', { className: 'radar-mini', type: 'button',
+                onClick: (e) => { e.stopPropagation(); onPick(g.name) } }, '查看该类报价'),
             ),
           )),
         ),
@@ -441,7 +595,7 @@ window.__ModuleLoader__.load({
     }
 
     /** Tab 3: sales leaderboard — real published shop sales + product sold markers. */
-    function HotBoard({ rows, shopSales }) {
+    function HotBoard({ rows, shopSales, openDetail }) {
       const topShops = React.useMemo(() => shopSales.slice(0, 30), [shopSales])
       const maxSales = topShops.reduce((m, s) => Math.max(m, s.sales), 1)
       const offerCountByShop = React.useMemo(() => {
@@ -491,7 +645,8 @@ window.__ModuleLoader__.load({
         ),
         h('h4', { className: 'radar-subhead' }, `① 店铺累计销量榜 · ${shopSales.length} 家有公开销量数据`),
         topShops.length === 0 && h('div', { className: 'radar-empty' }, '本轮未取到公开销量数据（来源可能限流），稍后刷新。'),
-        topShops.map((s, i) => h('div', { className: 'radar-rank', key: s.shop + i },
+        topShops.map((s, i) => h('div', { className: 'radar-rank radar-clickable', key: s.shop + i,
+          onClick: () => openDetail('shop', s.shop, s.shop, 'hot') },
           h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
           h('div', { className: 'radar-rank-main' },
             h('span', { className: 'radar-rank-name', title: s.shop }, s.shop),
@@ -509,7 +664,8 @@ window.__ModuleLoader__.load({
         )),
         h('h4', { className: 'radar-subhead' }, `② 商品「已售」标记榜 · ${soldProducts.length} 条`),
         soldProducts.length === 0 && h('div', { className: 'radar-empty' }, '本轮报价标题中没有「已售」标记。'),
-        soldProducts.map((r, i) => h('div', { className: 'radar-rank', key: r.dedupeKey + i },
+        soldProducts.map((r, i) => h('div', { className: 'radar-rank radar-clickable', key: r.dedupeKey + i,
+          onClick: () => openDetail('item', r.url || r.dedupeKey, r.title, 'hot') },
           h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
           h('div', { className: 'radar-rank-main' },
             h('span', { className: 'radar-rank-name', title: r.title }, r.title),
@@ -527,7 +683,8 @@ window.__ModuleLoader__.load({
         )),
         h('h4', { className: 'radar-subhead' }, '③ 供给热度榜 · 按店铺在售报价数（非销量）'),
         h('p', { className: 'radar-board-note' }, '报价条数只反映该店被各来源收录的供给规模，不等同于销量，用于发现铺货量大的店铺。'),
-        supply.map((s, i) => h('div', { className: 'radar-rank', key: 'supply' + i },
+        supply.map((s, i) => h('div', { className: 'radar-rank radar-clickable', key: 'supply' + i,
+          onClick: () => openDetail('shop', s.store, s.store, 'hot') },
           h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
           h('div', { className: 'radar-rank-main' },
             h('span', { className: 'radar-rank-name', title: s.store }, s.store),
@@ -554,13 +711,13 @@ window.__ModuleLoader__.load({
       return `${Math.round(hr / 24)} 天前`
     }
 
-    function OfferCard({ offer }) {
+    function OfferCard({ offer, onOpen }) {
       const stockChip = offer.stock === 'in'
         ? h('span', { className: 'radar-chip ok' }, offer.stockCount ? `标记有货 · 库存 ${offer.stockCount}` : '标记有货')
         : offer.stock === 'out'
           ? h('span', { className: 'radar-chip out' }, '缺货')
           : h('span', { className: 'radar-chip' }, '库存未知')
-      return h('div', { className: 'radar-card' },
+      return h('div', { className: 'radar-card radar-clickable', onClick: onOpen },
         h('div', { className: 'radar-chips' },
           h('span', { className: 'radar-chip' }, offer.platform),
           h('span', { className: 'radar-chip src' }, `来源：${SOURCE_NAMES[offer.source] || offer.source}`),
@@ -574,7 +731,8 @@ window.__ModuleLoader__.load({
         h('div', { className: 'radar-card-foot' },
           h('span', { className: 'radar-obs' }, offer.observedAt ? `观察：${relTime(offer.observedAt)}` : ''),
           offer.url
-            ? h('a', { className: 'radar-link', href: offer.url, target: '_blank', rel: 'noopener noreferrer nofollow' }, '查看原始报价')
+            ? h('a', { className: 'radar-link', href: offer.url, target: '_blank', rel: 'noopener noreferrer nofollow',
+              onClick: (e) => e.stopPropagation() }, '查看原始报价')
             : h('span', { className: 'radar-chip' }, '无直链'),
         ),
       )
