@@ -74,6 +74,41 @@ window.__ModuleLoader__.load({
 .radar-doc ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:12px;line-height:1.6;color:var(--dsw-alias-label-secondary,#8b98a5);}
 .radar-doc a{color:var(--dsw-alias-state-business-primary,#4d6bfe);text-decoration:none;}
 .radar-loading{margin-top:40px;text-align:center;color:var(--dsw-alias-label-tertiary,#6e7b87);font-size:13px;}
+.radar-tabs{display:flex;gap:6px;margin-top:18px;border-bottom:1px solid var(--dsw-alias-border-l2,#212933);}
+.radar-tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 16px;font-size:13px;font-weight:600;
+  color:var(--dsw-alias-label-tertiary,#6e7b87);cursor:pointer;white-space:nowrap;}
+.radar-tab:hover{color:var(--dsw-alias-label-primary,#e6edf3);}
+.radar-tab.active{color:var(--dsw-alias-state-business-primary,#4d6bfe);border-bottom-color:var(--dsw-alias-state-business-primary,#4d6bfe);}
+.radar-board{margin-top:14px;display:flex;flex-direction:column;gap:10px;}
+.radar-rank{background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l2,#212933);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:14px;}
+.radar-rank-no{width:30px;min-width:30px;text-align:center;font-size:16px;font-weight:800;color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-rank-no.top{color:#f59e0b;}
+.radar-rank-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;}
+.radar-rank-name{font-size:13px;font-weight:600;color:var(--dsw-alias-label-primary,#e6edf3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.radar-rank-sub{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);display:flex;gap:10px;flex-wrap:wrap;}
+.radar-rank-num{text-align:right;min-width:96px;display:flex;flex-direction:column;gap:2px;}
+.radar-rank-num b{font-size:17px;font-weight:800;color:#f97316;}
+.radar-rank-num span{font-size:10px;color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-bar{height:5px;border-radius:3px;background:var(--dsw-alias-interactive-bg-hover,#1f2630);overflow:hidden;}
+.radar-bar > i{display:block;height:100%;background:linear-gradient(90deg,#4d6bfe,#22c55e);border-radius:3px;}
+.radar-rank-actions{display:flex;gap:6px;align-items:center;}
+.radar-mini{background:rgba(77,107,254,.12);color:var(--dsw-alias-state-business-primary,#4d6bfe);border:none;border-radius:6px;
+  padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.radar-mini:hover{background:rgba(77,107,254,.22);}
+.radar-board-title{margin:0 0 4px;font-size:14px;font-weight:700;}
+.radar-board-note{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);line-height:1.6;margin:0 0 8px;}
+.radar-subhead{margin:18px 0 8px;font-size:13px;font-weight:700;color:var(--dsw-alias-label-secondary,#8b98a5);}
+.radar-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.radar-cat{background:var(--dsw-alias-bg-module-platform,#161b22);border:1px solid var(--dsw-alias-border-l2,#212933);border-radius:12px;padding:14px;}
+.radar-cat h5{margin:0 0 8px;font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;}
+.radar-cat h5 em{font-style:normal;font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);font-weight:500;}
+.radar-cat-metrics{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);}
+.radar-cat-metrics b{display:block;font-size:16px;color:var(--dsw-alias-label-primary,#e6edf3);font-weight:700;}
+.radar-cat-metrics b.orange{color:#f97316;}
+.radar-cat-bar{margin-top:10px;}
+.radar-cat-foot{margin-top:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.radar-cat-shop{font-size:11px;color:var(--dsw-alias-label-tertiary,#6e7b87);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 `
     // Inject one stylesheet; removed with the plugin.
     let styleEl = null
@@ -98,6 +133,7 @@ window.__ModuleLoader__.load({
       { id: 'priceai', label: 'PriceAI（priceai.cc）' },
       { id: 'aifeeradar', label: 'AIFeeRadar（aifeeradar.com）' },
     ]
+    const SOURCE_NAMES = Object.fromEntries(SOURCES.map(s => [s.id, s.label.replace(/（.*$/, '').trim()]))
     const PLATFORMS = ['全部平台', '链动小铺', '自建站', '云猫寄售', '16688', '独角数卡', '未知']
     const TYPES = ['全部类型', '成品号', '代充', '卡密', '车位', '质保', '未知']
     const SORTS = [
@@ -110,7 +146,7 @@ window.__ModuleLoader__.load({
       const [state, setState] = React.useState({
         loading: true, error: null, snapshot: null, query: '',
         source: 'all', stock: 'all', platform: '全部平台', type: '全部类型',
-        sort: 'price-asc', page: 1,
+        category: '全部类目', tab: 'offers', sort: 'price-asc', page: 1,
       })
       const inputRef = React.useRef(null)
       const PAGE_SIZE = 100
@@ -126,6 +162,10 @@ window.__ModuleLoader__.load({
 
       const snapshot = state.snapshot
       const rows = snapshot ? snapshot.rows : []
+      const categories = React.useMemo(() => {
+        const names = [...new Set(rows.map(r => r.category).filter(Boolean))].sort()
+        return ['全部类目', ...names]
+      }, [rows])
       const filtered = React.useMemo(() => {
         const q = state.query.trim().toLowerCase()
         const out = rows.filter(r => {
@@ -134,6 +174,7 @@ window.__ModuleLoader__.load({
           if (state.stock === 'out' && r.stock !== 'out') return false
           if (state.platform !== '全部平台' && r.platform !== state.platform) return false
           if (state.type !== '全部类型' && r.productType !== state.type) return false
+          if (state.category !== '全部类目' && r.category !== state.category) return false
           if (q && !(r.title.toLowerCase().includes(q) || r.store.toLowerCase().includes(q))) return false
           return true
         })
@@ -143,7 +184,7 @@ window.__ModuleLoader__.load({
           return String(b.observedAt).localeCompare(String(a.observedAt))
         })
         return out
-      }, [rows, state.query, state.source, state.stock, state.platform, state.type, state.sort])
+      }, [rows, state.query, state.source, state.stock, state.platform, state.type, state.category, state.sort])
 
       const pageRows = filtered.slice(0, state.page * PAGE_SIZE)
       const lowest = filtered.length ? Math.min(...filtered.map(r => r.price)) : null
@@ -156,6 +197,8 @@ window.__ModuleLoader__.load({
         setState(s => ({ ...s, query: inputRef.current ? inputRef.current.value : '', page: 1 }))
       }
       const setField = (key) => (e) => setState(s => ({ ...s, [key]: e.target.value, page: 1 }))
+      const setTab = (tab) => setState(s => ({ ...s, tab }))
+      const pickCategory = (name) => setState(s => ({ ...s, category: name, tab: 'offers', page: 1, query: '' }))
 
       return h('div', { className: 'radar-page' },
         h('style', null, cssText),
@@ -202,6 +245,11 @@ window.__ModuleLoader__.load({
                 TYPES.map(t => h('option', { key: t, value: t }, t)),
               ),
             ),
+            h('label', { className: 'radar-field' }, '商品类目',
+              h('select', { className: 'radar-select', value: state.category, onChange: setField('category') },
+                categories.map(c => h('option', { key: c, value: c }, c)),
+              ),
+            ),
           ),
         ),
         h('div', { className: 'radar-stats' },
@@ -219,24 +267,21 @@ window.__ModuleLoader__.load({
         (snapshot && snapshot.errors && snapshot.errors.length > 0) && h('div', { className: 'radar-warn' },
           '部分来源受限：' + snapshot.errors.map(e => e.source + ' ' + e.message).join('；'),
         ),
-        h('div', { className: 'radar-section' },
-          h('h3', null, `商品报价 · ${filtered.length} 条（按不同交付类型核对后再比价）`),
-          h('label', { className: 'radar-sort' }, '排序：',
-            h('select', { className: 'radar-select', value: state.sort, onChange: setField('sort') },
-              SORTS.map(s => h('option', { key: s.id, value: s.id }, s.label)),
-            ),
+        h('div', { className: 'radar-tabs' },
+          [['offers', '报价卡片'], ['categories', '分类榜单'], ['hot', '销售热榜']].map(([id, label]) =>
+            h('button', {
+              key: id, type: 'button',
+              className: `radar-tab${state.tab === id ? ' active' : ''}`,
+              onClick: () => setTab(id),
+            }, label),
           ),
         ),
-        state.loading && h('div', { className: 'radar-loading' }, '正在采集多源报价…'),
-        state.error && h('div', { className: 'radar-empty' }, `采集失败：${state.error}（点右上刷新或稍后重试）`),
-        !state.loading && !state.error && pageRows.length === 0 && h('div', { className: 'radar-empty' }, '没有符合筛选条件的报价；放宽筛选或换个关键词试试。'),
-        h('div', { className: 'radar-grid' },
-          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r })),
-        ),
-        pageRows.length < filtered.length && h('div', { style: { marginTop: '16px', textAlign: 'center' } },
-          h('button', { className: 'radar-btn', onClick: () => setState(s => ({ ...s, page: s.page + 1 })) },
-            `加载更多（还有 ${filtered.length - pageRows.length} 条）`),
-        ),
+        state.tab === 'offers' && h(OffersView, {
+          state, filtered, pageRows, setField,
+          onLoadMore: () => setState(s => ({ ...s, page: s.page + 1 })),
+        }),
+        state.tab === 'categories' && h(CategoryBoard, { rows, onPick: pickCategory }),
+        state.tab === 'hot' && h(HotBoard, { rows, shopSales: snapshot ? (snapshot.shopSales || []) : [] }),
         h('div', { className: 'radar-doc' },
           h('h4', null, '数据来源与口径'),
           h('ul', null,
@@ -248,6 +293,8 @@ window.__ModuleLoader__.load({
             h('li', null, 'PriceAI（https://priceai.cc） 与 AIFeeRadar（https://aifeeradar.com） ——与 BiWu.Ai 同一 price-radar.v1 官方快照 feed 家族（各自 /.well-known/price-radar.json 发现，按其 API 约定带缓存拉取）。'),
             h('li', null, '链动小铺（wzyp.cn） ——数据主源之一，但直抓被其 ESA 人机验证拦截；其报价由 BiWu、AI价网、知途、OpenPrice 四路覆盖，实时性以聚合源为准。'),
             h('li', null, '水獭（shuifa.xyz） ——本轮未并入：2026-11-13 起实测域名不可达（恢复后可按同架构接入）.'),
+            h('li', null, '分类榜单：把七源的细分类目统一归入 12 个 AI 货架（ChatGPT / Claude / Gemini / Grok / 邮箱账号 / 接码验证 / API 中转 等）；报价数=供给规模，最低/中位价=当前结果价格带，店铺数=活跃店铺。'),
+            h('li', null, '销售热榜：店铺累计销量取自 AI价网公开「店铺销量」标签与云猫寄售 Shop/info 的 sell_count（已按店铺去重、冲突取较大值）；商品「已售」取自标题标注；供给热度按店铺收录报价数排序，明确非销量。均为商家公开的历史累计口径，非本插件成交数据。'),
             h('li', null, '库存口径：数字 = 库存件数；未知 = 来源未公开库存。同一商品以「平台 + 店铺标识 + 商品标识」为键去重；同一商品同时有直抓与聚合报价时保留直抓行。报价行不重复计数。'),
             h('li', null, '本页只做信息聚合与导航，不参与任何交易；付款前请以商家页面为准。'),
           ),
@@ -261,6 +308,199 @@ window.__ModuleLoader__.load({
       return String(Number(value.toFixed(2)))
     }
 
+    function compactNumber(n) {
+      if (!isFinite(n)) return '—'
+      if (n >= 10000) return `${Number((n / 10000).toFixed(1))} 万`
+      return String(n)
+    }
+
+    /** Tab 1: the original offer grid. */
+    function OffersView({ state, filtered, pageRows, setField, onLoadMore }) {
+      return h('div', null,
+        h('div', { className: 'radar-section' },
+          h('h3', null, `商品报价 · ${filtered.length} 条（按不同交付类型核对后再比价）`),
+          h('label', { className: 'radar-sort' }, '排序：',
+            h('select', { className: 'radar-select', value: state.sort, onChange: setField('sort') },
+              SORTS.map(s => h('option', { key: s.id, value: s.id }, s.label)),
+            ),
+          ),
+        ),
+        state.loading && h('div', { className: 'radar-loading' }, '正在采集多源报价…'),
+        state.error && h('div', { className: 'radar-empty' }, `采集失败：${state.error}（稍后刷新重试）`),
+        !state.loading && !state.error && pageRows.length === 0 && h('div', { className: 'radar-empty' }, '没有符合筛选条件的报价；放宽筛选或换个关键词试试。'),
+        h('div', { className: 'radar-grid' },
+          pageRows.map(r => h(OfferCard, { key: r.dedupeKey, offer: r })),
+        ),
+        pageRows.length < filtered.length && h('div', { style: { marginTop: '16px', textAlign: 'center' } },
+          h('button', { className: 'radar-btn', onClick: onLoadMore },
+            `加载更多（还有 ${filtered.length - pageRows.length} 条）`),
+        ),
+      )
+    }
+
+    /** Tab 2: category board — supply, stock, price band and top shop per shelf. */
+    function CategoryBoard({ rows, onPick }) {
+      const groups = React.useMemo(() => {
+        const map = new Map()
+        for (const r of rows) {
+          const name = r.category || '其它 AI 服务'
+          let g = map.get(name)
+          if (!g) { g = { name, rows: [] }; map.set(name, g) }
+          g.rows.push(r)
+        }
+        const total = rows.length || 1
+        return [...map.values()].map(g => {
+          const prices = g.rows.map(r => r.price).sort((a, b) => a - b)
+          const shops = new Set(g.rows.map(r => r.store))
+          const inStock = g.rows.filter(r => r.stock === 'in').length
+          // Top shop = most offers in this category (supply leader, not sales).
+          const byShop = new Map()
+          for (const r of g.rows) byShop.set(r.store, (byShop.get(r.store) || 0) + 1)
+          const topShop = [...byShop.entries()].sort((a, b) => b[1] - a[1])[0]
+          return {
+            name: g.name,
+            count: g.rows.length,
+            share: g.rows.length / total,
+            inStock,
+            lowest: prices[0],
+            median: prices[Math.floor(prices.length / 2)],
+            shops: shops.size,
+            topShop: topShop ? topShop[0] : '—',
+          }
+        }).sort((a, b) => b.count - a.count)
+      }, [rows])
+      const maxCount = groups.reduce((m, g) => Math.max(m, g.count), 1)
+
+      return h('div', null,
+        h('div', { className: 'radar-board' },
+          h('h4', { className: 'radar-board-title' }, '分类榜单 · 按 AI 品类聚合全部来源'),
+          h('p', { className: 'radar-board-note' },
+            '统一把七源的细分类目归入 12 个货架：报价数反映该品类的供给规模，最低/中位价是当前结果的价格带，店铺数为活跃店铺数。点「查看该类报价」切回报价卡片并自动套用类目筛选。'),
+        ),
+        h('div', { className: 'radar-cat-grid' },
+          groups.map(g => h('div', { className: 'radar-cat', key: g.name },
+            h('h5', null, g.name, h('em', null, `${(g.share * 100).toFixed(1)}% 的报价`)),
+            h('div', { className: 'radar-cat-metrics' },
+              h('div', null, h('b', null, String(g.count)), '报价数'),
+              h('div', null, h('b', null, String(g.inStock)), '标记有货'),
+              h('div', null, h('b', { className: 'orange' }, `¥${formatPrice(g.lowest)}`), '最低价'),
+              h('div', null, h('b', null, `¥${formatPrice(g.median)}`), '中位价'),
+              h('div', null, h('b', null, String(g.shops)), '店铺数'),
+            ),
+            h('div', { className: 'radar-bar radar-cat-bar' },
+              h('i', { style: { width: `${Math.max(3, (g.count / maxCount) * 100)}%` } }),
+            ),
+            h('div', { className: 'radar-cat-foot' },
+              h('span', { className: 'radar-cat-shop', title: g.topShop }, `供给最多：${g.topShop}`),
+              h('button', { className: 'radar-mini', type: 'button', onClick: () => onPick(g.name) }, '查看该类报价'),
+            ),
+          )),
+        ),
+      )
+    }
+
+    /** Tab 3: sales leaderboard — real published shop sales + product sold markers. */
+    function HotBoard({ rows, shopSales }) {
+      const topShops = React.useMemo(() => shopSales.slice(0, 30), [shopSales])
+      const maxSales = topShops.reduce((m, s) => Math.max(m, s.sales), 1)
+      const offerCountByShop = React.useMemo(() => {
+        const map = new Map()
+        for (const r of rows) {
+          const key = (r.store || '').trim().toLowerCase()
+          map.set(key, (map.get(key) || 0) + 1)
+        }
+        return map
+      }, [rows])
+      const offersForShop = (name) => {
+        const key = name.trim().toLowerCase()
+        let count = offerCountByShop.get(key) || 0
+        // Aggregator shop names often carry a platform prefix/suffix
+        // (e.g. "链动小铺 · 牟利ai · 2VWX76A4"), so fall back to a contained match.
+        if (count === 0 && key.length >= 3) {
+          for (const [store, n] of offerCountByShop) {
+            if (store.includes(key) || key.includes(store)) count += n
+          }
+        }
+        return count
+      }
+      const soldProducts = React.useMemo(() => rows
+        .filter(r => r.soldCount > 0)
+        .sort((a, b) => b.soldCount - a.soldCount)
+        .slice(0, 20), [rows])
+      const maxSold = soldProducts.reduce((m, s) => Math.max(m, s.soldCount), 1)
+      // Supply leaderboard: shops by number of live offers (NOT sales).
+      const supply = React.useMemo(() => {
+        const map = new Map()
+        for (const r of rows) {
+          const key = r.store || '未知店铺'
+          const cur = map.get(key) || { store: key, count: 0, platform: r.platform, inStock: 0 }
+          cur.count++
+          if (r.stock === 'in') cur.inStock++
+          map.set(key, cur)
+        }
+        return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 15)
+      }, [rows])
+      const maxSupply = supply.reduce((m, s) => Math.max(m, s.count), 1)
+
+      return h('div', null,
+        h('div', { className: 'radar-board' },
+          h('h4', { className: 'radar-board-title' }, '销售热榜 · 哪些店铺 / 商品好卖'),
+          h('p', { className: 'radar-board-note' },
+            '销量数字来自来源站点公开的店铺累计销量（AI价网「店铺销量」标签、云猫寄售 Shop/info 的 sell_count）与商品标题里的「已售 X」标记，是商家自行公开的历史累计口径，不是本插件的成交数据，也不代表当下实时销量；仅供选品参考，付款前请回原站核对。'),
+        ),
+        h('h4', { className: 'radar-subhead' }, `① 店铺累计销量榜 · ${shopSales.length} 家有公开销量数据`),
+        topShops.length === 0 && h('div', { className: 'radar-empty' }, '本轮未取到公开销量数据（来源可能限流），稍后刷新。'),
+        topShops.map((s, i) => h('div', { className: 'radar-rank', key: s.shop + i },
+          h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
+          h('div', { className: 'radar-rank-main' },
+            h('span', { className: 'radar-rank-name', title: s.shop }, s.shop),
+            h('span', { className: 'radar-rank-sub' },
+              h('span', null, s.platform),
+              h('span', null, `来源：${(s.sources || [s.source]).map(x => SOURCE_NAMES[x] || x).join(' + ')}`),
+              h('span', null, `在售报价 ${offersForShop(s.shop)} 条`),
+            ),
+            h('div', { className: 'radar-bar' }, h('i', { style: { width: `${Math.max(2, (s.sales / maxSales) * 100)}%` } })),
+          ),
+          h('div', { className: 'radar-rank-num' },
+            h('b', null, compactNumber(s.sales)),
+            h('span', null, '累计销量（公开）'),
+          ),
+        )),
+        h('h4', { className: 'radar-subhead' }, `② 商品「已售」标记榜 · ${soldProducts.length} 条`),
+        soldProducts.length === 0 && h('div', { className: 'radar-empty' }, '本轮报价标题中没有「已售」标记。'),
+        soldProducts.map((r, i) => h('div', { className: 'radar-rank', key: r.dedupeKey + i },
+          h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
+          h('div', { className: 'radar-rank-main' },
+            h('span', { className: 'radar-rank-name', title: r.title }, r.title),
+            h('span', { className: 'radar-rank-sub' },
+              h('span', null, r.store),
+              h('span', null, `¥${formatPrice(r.price)}`),
+              h('span', null, SOURCE_NAMES[r.source] || r.source),
+            ),
+            h('div', { className: 'radar-bar' }, h('i', { style: { width: `${Math.max(2, (r.soldCount / maxSold) * 100)}%` } })),
+          ),
+          h('div', { className: 'radar-rank-num' },
+            h('b', null, compactNumber(r.soldCount)),
+            h('span', null, '标题标注已售'),
+          ),
+        )),
+        h('h4', { className: 'radar-subhead' }, '③ 供给热度榜 · 按店铺在售报价数（非销量）'),
+        h('p', { className: 'radar-board-note' }, '报价条数只反映该店被各来源收录的供给规模，不等同于销量，用于发现铺货量大的店铺。'),
+        supply.map((s, i) => h('div', { className: 'radar-rank', key: 'supply' + i },
+          h('span', { className: `radar-rank-no${i < 3 ? ' top' : ''}` }, String(i + 1)),
+          h('div', { className: 'radar-rank-main' },
+            h('span', { className: 'radar-rank-name', title: s.store }, s.store),
+            h('span', { className: 'radar-rank-sub' }, h('span', null, s.platform), h('span', null, `有货 ${s.inStock} 条`)),
+            h('div', { className: 'radar-bar' }, h('i', { style: { width: `${Math.max(2, (s.count / maxSupply) * 100)}%` } })),
+          ),
+          h('div', { className: 'radar-rank-num' },
+            h('b', null, String(s.count)),
+            h('span', null, '收录报价数'),
+          ),
+        )),
+      )
+    }
+
     function relTime(iso) {
       const t = Date.parse(iso)
       if (!isFinite(t)) return ''
@@ -272,8 +512,6 @@ window.__ModuleLoader__.load({
       if (hr < 24) return `${hr} 小时前`
       return `${Math.round(hr / 24)} 天前`
     }
-
-    const SOURCE_NAMES = Object.fromEntries(SOURCES.map(s => [s.id, s.label.replace(/（.*$/, '').trim()]))
 
     function OfferCard({ offer }) {
       const stockChip = offer.stock === 'in'

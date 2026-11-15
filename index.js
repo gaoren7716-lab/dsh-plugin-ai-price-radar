@@ -48,6 +48,7 @@ export function apply(ctx) {
               cachedAt: snapshot.cachedAt,
               sources: snapshot.sources.map(s => ({ source: s.source, label: s.label, count: s.offers.length, failed: false })),
               errors: snapshot.errors,
+              shopSales: snapshot.shopSales || [],
               rows,
             })
             res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
